@@ -444,7 +444,7 @@ export default function CandidateDetailPage() {
           {/* Tab 1: Resume & Portfolio */}
           {activeTab === 1 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Mock PDF Viewer */}
+              {/* Resume Card */}
               <div className="bg-card border border-card-border rounded-xl overflow-hidden">
                 <div className="px-6 py-4 border-b border-card-border flex items-center justify-between">
                   <h3 className="text-sm font-bold">Resume</h3>
@@ -452,118 +452,141 @@ export default function CandidateDetailPage() {
                 </div>
                 <div className="p-6">
                   <div className="bg-white text-gray-900 rounded-lg p-8 shadow-inner min-h-[500px]">
-                    {/* Mock resume content */}
+                    {/* Header */}
                     <div className="border-b-2 border-gray-200 pb-4 mb-6">
                       <h2 className="text-2xl font-bold text-gray-900">{applicant.name}</h2>
                       <p className="text-sm text-gray-600 mt-1">{applicant.job_title}</p>
-                      <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                      <div className="flex flex-wrap gap-4 mt-2 text-xs text-gray-500">
                         <span>{applicant.email}</span>
-                        <span>{applicant.phone || '+1 (555) 000-0000'}</span>
+                        {applicant.phone && <span>{applicant.phone}</span>}
                       </div>
                     </div>
 
+                    {/* Professional Summary */}
                     <div className="mb-6">
                       <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
                         Professional Summary
                       </h3>
                       <p className="text-sm text-gray-700 leading-relaxed">
-                        Experienced {applicant.job_title.toLowerCase()} with {applicant.years_experience}+ years of
-                        expertise in building scalable applications and leading engineering teams.
-                        Proven track record of delivering high-impact solutions in fast-paced
-                        startup environments.
+                        {applicant.ai_reasoning
+                          ? applicant.ai_reasoning
+                          : applicant.cover_letter
+                            ? applicant.cover_letter
+                            : `Experienced ${applicant.job_title.toLowerCase()} with ${applicant.years_experience}+ years of professional experience. Cover letter available in Application Preview tab.`}
                       </p>
                     </div>
 
-                    <div className="mb-6">
-                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                        Professional Experience
-                      </h3>
-                      <div className="space-y-4">
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <p className="font-semibold text-sm">Senior Engineer - TechCorp</p>
-                            <span className="text-xs text-gray-500">2021 - Present</span>
-                          </div>
-                          <ul className="mt-2 space-y-1 text-xs text-gray-600 list-disc pl-4">
-                            <li>Led migration from monolith to microservices architecture</li>
-                            <li>Reduced deployment time by 70% through CI/CD pipeline optimization</li>
-                            <li>Mentored 4 junior engineers to senior level within 18 months</li>
-                          </ul>
-                        </div>
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <p className="font-semibold text-sm">Full-Stack Developer - StartupXYZ</p>
-                            <span className="text-xs text-gray-500">2018 - 2021</span>
-                          </div>
-                          <ul className="mt-2 space-y-1 text-xs text-gray-600 list-disc pl-4">
-                            <li>Built real-time data pipeline processing 1M+ events/day</li>
-                            <li>Designed and implemented customer-facing dashboard used by 50K+ users</li>
-                          </ul>
+                    {/* Skills */}
+                    {applicant.ai_extracted_skills && applicant.ai_extracted_skills.length > 0 && (
+                      <div className="mb-6">
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+                          Skills
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {applicant.ai_extracted_skills.map((skill, i) => (
+                            <span
+                              key={i}
+                              className="text-xs bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full"
+                            >
+                              {skill}
+                            </span>
+                          ))}
                         </div>
                       </div>
+                    )}
+
+                    {/* Experience Summary */}
+                    <div className="mb-6">
+                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+                        Experience
+                      </h3>
+                      <p className="text-sm text-gray-700">
+                        {applicant.years_experience}+ years as {applicant.job_title}
+                      </p>
                     </div>
 
-                    <div>
-                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                        Education
-                      </h3>
-                      <p className="text-sm text-gray-700">B.S. Computer Science - State University</p>
+                    {/* Download Link */}
+                    <div className="pt-4 border-t border-gray-200">
+                      <p className="text-xs text-gray-400 italic">
+                        Full resume available for download
+                      </p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Portfolio Highlights */}
+              {/* AI Resume Analysis */}
               <div className="bg-card border border-card-border rounded-xl overflow-hidden">
                 <div className="px-6 py-4 border-b border-card-border">
-                  <h3 className="text-sm font-bold">Portfolio Highlights</h3>
+                  <h3 className="text-sm font-bold">AI Resume Analysis</h3>
                 </div>
-                <div className="p-6 space-y-4">
-                  {/* Project Card 1 */}
+                <div className="p-6 space-y-5">
+                  {/* Match Score */}
+                  <div className="bg-background rounded-xl p-5 border border-card-border text-center">
+                    <p className="text-xs text-muted uppercase tracking-wider mb-2">Match Score</p>
+                    <p className="text-4xl font-bold" style={{ color: (applicant.ai_match_score ?? 0) >= 80 ? '#22c55e' : (applicant.ai_match_score ?? 0) >= 60 ? '#eab308' : '#ef4444' }}>
+                      {applicant.ai_match_score ?? 'N/A'}
+                    </p>
+                    <p className="text-xs text-muted mt-1">
+                      {(applicant.ai_match_score ?? 0) >= 80
+                        ? 'Excellent Fit'
+                        : (applicant.ai_match_score ?? 0) >= 60
+                          ? 'Good Fit'
+                          : applicant.ai_match_score != null
+                            ? 'Fair Fit'
+                            : 'Not yet scored'}
+                    </p>
+                  </div>
+
+                  {/* Company Stage Fit */}
                   <div className="bg-background rounded-xl p-5 border border-card-border">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
-                        <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-sm">Real-time Analytics Dashboard</h4>
-                        <p className="text-xs text-muted mt-1 leading-relaxed">
-                          Built a high-performance analytics platform processing 500K events per second.
-                          Used React, D3.js, WebSockets, and PostgreSQL with custom time-series optimizations.
-                        </p>
-                        <div className="flex gap-2 mt-3">
-                          <span className="text-[10px] bg-card border border-card-border px-2 py-0.5 rounded-full text-muted">React</span>
-                          <span className="text-[10px] bg-card border border-card-border px-2 py-0.5 rounded-full text-muted">D3.js</span>
-                          <span className="text-[10px] bg-card border border-card-border px-2 py-0.5 rounded-full text-muted">WebSockets</span>
-                        </div>
-                      </div>
+                    <p className="text-xs text-muted uppercase tracking-wider mb-2">Company Stage Fit</p>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-block w-2.5 h-2.5 rounded-full ${
+                        (applicant.ai_match_score ?? 0) >= 80
+                          ? 'bg-green-500'
+                          : (applicant.ai_match_score ?? 0) >= 60
+                            ? 'bg-yellow-500'
+                            : 'bg-red-500'
+                      }`} />
+                      <span className="text-sm font-medium">
+                        {(applicant.ai_match_score ?? 0) >= 80
+                          ? 'Excellent - Strong alignment with role requirements'
+                          : (applicant.ai_match_score ?? 0) >= 60
+                            ? 'Good - Meets most role requirements'
+                            : applicant.ai_match_score != null
+                              ? 'Fair - Some gaps in role alignment'
+                              : 'Pending AI analysis'}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Project Card 2 */}
-                  <div className="bg-background rounded-xl p-5 border border-card-border">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center shrink-0">
-                        <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-sm">AI-Powered Content Platform</h4>
-                        <p className="text-xs text-muted mt-1 leading-relaxed">
-                          Designed and shipped an AI content generation platform with multi-model orchestration,
-                          serving 10K+ monthly active users. Built with Next.js, Python, and OpenAI APIs.
-                        </p>
-                        <div className="flex gap-2 mt-3">
-                          <span className="text-[10px] bg-card border border-card-border px-2 py-0.5 rounded-full text-muted">Next.js</span>
-                          <span className="text-[10px] bg-card border border-card-border px-2 py-0.5 rounded-full text-muted">Python</span>
-                          <span className="text-[10px] bg-card border border-card-border px-2 py-0.5 rounded-full text-muted">OpenAI</span>
-                        </div>
+                  {/* Skills Match */}
+                  {applicant.ai_extracted_skills && applicant.ai_extracted_skills.length > 0 && (
+                    <div className="bg-background rounded-xl p-5 border border-card-border">
+                      <p className="text-xs text-muted uppercase tracking-wider mb-3">Skills Match</p>
+                      <div className="flex flex-wrap gap-2">
+                        {applicant.ai_extracted_skills.map((skill, i) => (
+                          <span
+                            key={i}
+                            className="text-[11px] bg-card border border-card-border px-2.5 py-1 rounded-full text-muted"
+                          >
+                            {skill}
+                          </span>
+                        ))}
                       </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* AI Summary */}
+                  {applicant.ai_reasoning && (
+                    <div className="bg-background rounded-xl p-5 border border-card-border">
+                      <p className="text-xs text-muted uppercase tracking-wider mb-3">AI Summary</p>
+                      <blockquote className="text-sm text-muted leading-relaxed border-l-2 border-card-border pl-4 italic">
+                        {applicant.ai_reasoning}
+                      </blockquote>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
