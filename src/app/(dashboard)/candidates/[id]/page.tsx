@@ -7,6 +7,117 @@ import TopBar from '@/components/TopBar';
 import { supabase } from '@/lib/supabase';
 import { Applicant, Interview } from '@/lib/types';
 
+// ── Resume Text Formatter ──────────────────────────────────────────────────
+function formatResumeText(text: string, candidateName: string, candidateEmail: string) {
+  const lines = text.split('\n');
+
+  // Common resume section heading keywords
+  const headingKeywords = [
+    'experience', 'education', 'skills', 'summary', 'objective', 'profile',
+    'certifications', 'certificates', 'languages', 'language', 'projects',
+    'awards', 'honors', 'publications', 'references', 'volunteer',
+    'additional', 'interests', 'activities', 'training', 'qualifications',
+    'professional', 'technical', 'work history', 'employment', 'contact',
+    'accomplishments', 'achievements', 'core competencies', 'expertise',
+  ];
+
+  function isHeading(line: string): boolean {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.length > 60) return false;
+    // ALL CAPS line (at least 3 alpha chars)
+    const alphaOnly = trimmed.replace(/[^a-zA-Z]/g, '');
+    if (alphaOnly.length >= 3 && trimmed === trimmed.toUpperCase()) return true;
+    // Matches a known heading keyword
+    const lower = trimmed.toLowerCase().replace(/[^a-z\s]/g, '').trim();
+    if (headingKeywords.some(kw => lower === kw || lower.startsWith(kw + ' ') || lower.endsWith(' ' + kw))) return true;
+    // Title Case short line (most words capitalized, < 40 chars, no period at end)
+    if (trimmed.length < 40 && !trimmed.endsWith('.') && !trimmed.endsWith(',')) {
+      const words = trimmed.split(/\s+/).filter(w => w.length > 0);
+      if (words.length >= 1 && words.length <= 5) {
+        const capitalizedWords = words.filter(w => /^[A-Z]/.test(w));
+        if (capitalizedWords.length / words.length >= 0.6) {
+          const lower2 = trimmed.toLowerCase();
+          if (headingKeywords.some(kw => lower2.includes(kw))) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function isHeaderInfo(line: string): boolean {
+    const trimmed = line.trim().toLowerCase();
+    if (!trimmed) return false;
+    const nameParts = candidateName.toLowerCase().split(/\s+/);
+    // Skip lines that are just the candidate name
+    if (nameParts.length >= 2 && nameParts.every(part => trimmed.includes(part))) return true;
+    // Skip lines that contain the email
+    if (candidateEmail && trimmed.includes(candidateEmail.toLowerCase())) return true;
+    return false;
+  }
+
+  // Skip leading header lines (name, email, phone, etc.) - first 5 lines max
+  let startIdx = 0;
+  for (let i = 0; i < Math.min(lines.length, 6); i++) {
+    const trimmed = lines[i].trim();
+    if (!trimmed) { startIdx = i + 1; continue; }
+    if (isHeaderInfo(trimmed)) { startIdx = i + 1; continue; }
+    // Phone numbers or short contact-like lines at the top
+    if (/^[\d\s\-\+\(\)\.]{7,}$/.test(trimmed)) { startIdx = i + 1; continue; }
+    // LinkedIn / website URLs
+    if (/^(https?:\/\/|www\.|linkedin)/i.test(trimmed)) { startIdx = i + 1; continue; }
+    // If it's a very short non-heading line at the very top (likely title/location)
+    if (i < 3 && trimmed.length < 50 && !isHeading(trimmed)) { startIdx = i + 1; continue; }
+    break;
+  }
+
+  const relevantLines = lines.slice(startIdx);
+
+  // Group lines into sections
+  const sections: { heading: string | null; content: string[] }[] = [];
+  let currentSection: { heading: string | null; content: string[] } = { heading: null, content: [] };
+
+  for (const line of relevantLines) {
+    const trimmed = line.trim();
+    if (isHeading(trimmed)) {
+      if (currentSection.heading !== null || currentSection.content.length > 0) {
+        sections.push(currentSection);
+      }
+      currentSection = { heading: trimmed, content: [] };
+    } else if (trimmed) {
+      currentSection.content.push(trimmed);
+    }
+  }
+  if (currentSection.heading !== null || currentSection.content.length > 0) {
+    sections.push(currentSection);
+  }
+
+  return (
+    <>
+      {sections.map((section, idx) => (
+        <div key={idx}>
+          {idx > 0 && section.heading && (
+            <hr className="border-gray-200 my-4" />
+          )}
+          {section.heading && (
+            <h3 className="text-xs font-bold text-[#FF6B35] uppercase tracking-wider mb-3 mt-1">
+              {section.heading}
+            </h3>
+          )}
+          {section.content.length > 0 && (
+            <div className="space-y-1.5 mb-4">
+              {section.content.map((line, lineIdx) => (
+                <p key={lineIdx} className="text-sm text-gray-700 leading-relaxed">
+                  {line}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </>
+  );
+}
+
 // ── Success Modal (reused) ──────────────────────────────────────────────────
 function SuccessModal({ onClose }: { onClose: () => void }) {
   return (
@@ -463,8 +574,8 @@ export default function CandidateDetailPage() {
                     </div>
 
                     {applicant.resume_text ? (
-                      <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-                        {applicant.resume_text}
+                      <div className="text-sm text-gray-700 leading-relaxed">
+                        {formatResumeText(applicant.resume_text, applicant.name, applicant.email)}
                       </div>
                     ) : (
                       <>

@@ -76,18 +76,20 @@ export default function SchedulingPage() {
   // Popup state for click-to-manage
   const [selectedInterview, setSelectedInterview] = useState<CalendarInterview | null>(null);
   const [popupPos, setPopupPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [actionLoading, setActionLoading] = useState(false);
   const popupRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    async function fetchInterviews() {
-      const { data } = await supabase
-        .from('interviews')
-        .select('*, applicant:applicants(*)')
-        .order('scheduled_date', { ascending: true });
-      if (data) setInterviews(data);
-    }
-    fetchInterviews();
+  const fetchInterviews = useCallback(async () => {
+    const { data } = await supabase
+      .from('interviews')
+      .select('*, applicant:applicants(*)')
+      .order('scheduled_date', { ascending: true });
+    if (data) setInterviews(data);
   }, []);
+
+  useEffect(() => {
+    fetchInterviews();
+  }, [fetchInterviews]);
 
   // Convert DB interviews to calendar format and merge with samples
   const calendarInterviews = useMemo(() => {
@@ -147,28 +149,37 @@ export default function SchedulingPage() {
   const handleDelete = useCallback(
     async (interview: CalendarInterview) => {
       if (interview.isSample || !interview.id) {
-        // Sample interviews can't be deleted, just close popup
         setSelectedInterview(null);
         return;
       }
-      // Delete the interview
-      await supabase.from('interviews').delete().eq('id', interview.id);
-      // Reset applicant status back to screened
-      if (interview.dbInterview?.applicant_id) {
-        await supabase
-          .from('applicants')
-          .update({ status: 'screened' })
-          .eq('id', interview.dbInterview.applicant_id);
+      setActionLoading(true);
+      try {
+        // Delete the interview
+        const { error: deleteError } = await supabase
+          .from('interviews')
+          .delete()
+          .eq('id', interview.id);
+        if (deleteError) {
+          console.error('Failed to delete interview:', deleteError);
+          return;
+        }
+        // Reset applicant status back to screened
+        if (interview.dbInterview?.applicant_id) {
+          await supabase
+            .from('applicants')
+            .update({ status: 'screened' })
+            .eq('id', interview.dbInterview.applicant_id);
+        }
+        // Refresh interviews and close popup
+        await fetchInterviews();
+        setSelectedInterview(null);
+      } catch (err) {
+        console.error('Error deleting interview:', err);
+      } finally {
+        setActionLoading(false);
       }
-      // Refresh interviews
-      const { data } = await supabase
-        .from('interviews')
-        .select('*, applicant:applicants(*)')
-        .order('scheduled_date', { ascending: true });
-      if (data) setInterviews(data);
-      setSelectedInterview(null);
     },
-    []
+    [fetchInterviews]
   );
 
   // Close popup when clicking outside
@@ -351,28 +362,32 @@ export default function SchedulingPage() {
                   </div>
 
                   <div className="flex gap-2">
-                    {!selectedInterview.isSample && (
+                    {!selectedInterview.isSample ? (
                       <>
                         <button
                           onClick={() => handleDelete(selectedInterview)}
-                          className="flex-1 px-3 py-2 text-xs font-semibold rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                          disabled={actionLoading}
+                          className="flex-1 px-3 py-2 text-xs font-semibold rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Delete
+                          {actionLoading ? 'Deleting...' : 'Delete'}
                         </button>
                         <button
-                          onClick={() => {
-                            // For demo: delete and show the schedule modal concept
-                            handleDelete(selectedInterview);
-                          }}
-                          className="flex-1 px-3 py-2 text-xs font-semibold rounded-lg bg-[#FF6B35]/10 text-[#FF6B35] hover:bg-[#FF6B35]/20 transition-colors"
+                          onClick={() => handleDelete(selectedInterview)}
+                          disabled={actionLoading}
+                          className="flex-1 px-3 py-2 text-xs font-semibold rounded-lg bg-[#FF6B35]/10 text-[#FF6B35] hover:bg-[#FF6B35]/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Reschedule
+                          {actionLoading ? 'Working...' : 'Reschedule'}
                         </button>
                       </>
+                    ) : (
+                      <span className="flex-1 px-3 py-2 text-xs text-center font-medium text-gray-400 dark:text-[#666]">
+                        Sample data
+                      </span>
                     )}
                     <button
                       onClick={() => setSelectedInterview(null)}
-                      className="flex-1 px-3 py-2 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-[#333] text-gray-600 dark:text-[#9ca3af] hover:bg-gray-200 dark:hover:bg-[#444] transition-colors"
+                      disabled={actionLoading}
+                      className="flex-1 px-3 py-2 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-[#333] text-gray-600 dark:text-[#9ca3af] hover:bg-gray-200 dark:hover:bg-[#444] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Close
                     </button>

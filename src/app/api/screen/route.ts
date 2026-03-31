@@ -62,17 +62,21 @@ export async function POST(request: NextRequest) {
       messages: [
         {
           role: 'user',
-          content: `You are an HR screening AI. Analyze this candidate against the job description. The candidate's cover letter and details are provided. Return ONLY valid JSON: { "match_score": <0-100>, "reasoning": "<2-3 sentence explanation>", "extracted_skills": ["skill1", "skill2", ...] }
+          content: `You are an HR screening AI. Analyze this candidate against the job description.
+
+IMPORTANT: Base your scoring PRIMARILY on the candidate's resume/CV content. The resume is the main source of truth for skills, experience, and qualifications. The cover letter is supplementary context only - do not let it significantly influence the score if a resume is provided.
+
+Return ONLY valid JSON: { "match_score": <0-100>, "reasoning": "<2-3 sentence explanation>", "extracted_skills": ["skill1", "skill2", ...] }
 
 CANDIDATE DETAILS:
 - Name: ${applicant.name}
 - Current Job Title: ${applicant.job_title}
 - Years of Experience: ${applicant.years_experience}
 
-CANDIDATE RESUME (extracted from PDF):
+CANDIDATE RESUME (extracted from PDF) - PRIMARY SOURCE FOR SCORING:
 ${resumeText || 'No resume uploaded'}
 
-CANDIDATE COVER LETTER:
+CANDIDATE COVER LETTER (supplementary context only):
 ${applicant.cover_letter || 'No cover letter provided'}
 
 JOB DESCRIPTION:
