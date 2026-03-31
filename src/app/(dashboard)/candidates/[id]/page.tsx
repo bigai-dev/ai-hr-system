@@ -414,7 +414,7 @@ export default function CandidateDetailPage() {
                   cy="40"
                   r="34"
                   fill="none"
-                  stroke={score >= 80 ? '#10b981' : score >= 60 ? '#f59e0b' : '#ef4444'}
+                  stroke={score >= 75 ? '#10b981' : score >= 60 ? '#f59e0b' : score >= 40 ? '#f97316' : '#ef4444'}
                   strokeWidth="6"
                   strokeLinecap="round"
                   strokeDasharray={`${(score / 100) * 213.6} 213.6`}
@@ -430,7 +430,7 @@ export default function CandidateDetailPage() {
               </div>
               <div className="text-2xl font-bold">{score}/100</div>
               <div className="text-xs text-muted mt-1">
-                {score >= 80 ? 'Excellent Match' : score >= 60 ? 'Good Match' : 'Needs Review'}
+                {score >= 90 ? 'Excellent Match' : score >= 75 ? 'Strong Match' : score >= 60 ? 'Good Fit' : score >= 40 ? 'Moderate Fit' : score >= 20 ? 'Weak Fit' : 'Not Suitable'}
               </div>
             </div>
           </div>
@@ -512,7 +512,7 @@ export default function CandidateDetailPage() {
                         Company Stage Fit
                       </div>
                       <div className="text-xl font-bold">
-                        {score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Fair'}
+                        {score >= 90 ? 'Excellent' : score >= 75 ? 'Good' : score >= 60 ? 'Moderate' : score >= 40 ? 'Below Avg' : 'Poor'}
                       </div>
                     </div>
                   </div>
@@ -643,17 +643,23 @@ export default function CandidateDetailPage() {
                   {/* Match Score */}
                   <div className="bg-background rounded-xl p-5 border border-card-border text-center">
                     <p className="text-xs text-muted uppercase tracking-wider mb-2">Match Score</p>
-                    <p className="text-4xl font-bold" style={{ color: (applicant.ai_match_score ?? 0) >= 80 ? '#22c55e' : (applicant.ai_match_score ?? 0) >= 60 ? '#eab308' : '#ef4444' }}>
+                    <p className="text-4xl font-bold" style={{ color: (applicant.ai_match_score ?? 0) >= 75 ? '#22c55e' : (applicant.ai_match_score ?? 0) >= 60 ? '#eab308' : (applicant.ai_match_score ?? 0) >= 40 ? '#f97316' : '#ef4444' }}>
                       {applicant.ai_match_score ?? 'N/A'}
                     </p>
                     <p className="text-xs text-muted mt-1">
-                      {(applicant.ai_match_score ?? 0) >= 80
-                        ? 'Excellent Fit'
-                        : (applicant.ai_match_score ?? 0) >= 60
-                          ? 'Good Fit'
-                          : applicant.ai_match_score != null
-                            ? 'Fair Fit'
-                            : 'Not yet scored'}
+                      {applicant.ai_match_score == null
+                        ? 'Not yet scored'
+                        : (applicant.ai_match_score ?? 0) >= 90
+                          ? 'Excellent Match'
+                          : (applicant.ai_match_score ?? 0) >= 75
+                            ? 'Strong Match'
+                            : (applicant.ai_match_score ?? 0) >= 60
+                              ? 'Good Fit'
+                              : (applicant.ai_match_score ?? 0) >= 40
+                                ? 'Moderate Fit'
+                                : (applicant.ai_match_score ?? 0) >= 20
+                                  ? 'Weak Fit'
+                                  : 'Not Suitable'}
                     </p>
                   </div>
 
@@ -662,20 +668,26 @@ export default function CandidateDetailPage() {
                     <p className="text-xs text-muted uppercase tracking-wider mb-2">Company Stage Fit</p>
                     <div className="flex items-center gap-2">
                       <span className={`inline-block w-2.5 h-2.5 rounded-full ${
-                        (applicant.ai_match_score ?? 0) >= 80
+                        (applicant.ai_match_score ?? 0) >= 75
                           ? 'bg-green-500'
                           : (applicant.ai_match_score ?? 0) >= 60
                             ? 'bg-yellow-500'
-                            : 'bg-red-500'
+                            : (applicant.ai_match_score ?? 0) >= 40
+                              ? 'bg-orange-500'
+                              : 'bg-red-500'
                       }`} />
                       <span className="text-sm font-medium">
-                        {(applicant.ai_match_score ?? 0) >= 80
-                          ? 'Excellent - Strong alignment with role requirements'
-                          : (applicant.ai_match_score ?? 0) >= 60
-                            ? 'Good - Meets most role requirements'
-                            : applicant.ai_match_score != null
-                              ? 'Fair - Some gaps in role alignment'
-                              : 'Pending AI analysis'}
+                        {applicant.ai_match_score == null
+                          ? 'Pending AI analysis'
+                          : (applicant.ai_match_score ?? 0) >= 90
+                            ? 'Excellent - Strong role alignment'
+                            : (applicant.ai_match_score ?? 0) >= 75
+                              ? 'Good - Solid role alignment'
+                              : (applicant.ai_match_score ?? 0) >= 60
+                                ? 'Moderate - Partial role alignment'
+                                : (applicant.ai_match_score ?? 0) >= 40
+                                  ? 'Below Average - Limited alignment'
+                                  : 'Poor - Significant gaps in role alignment'}
                       </span>
                     </div>
                   </div>
@@ -821,7 +833,13 @@ export default function CandidateDetailPage() {
           )}
         </div>
         <div className="flex items-center gap-3">
-          <button className="px-5 py-2.5 text-sm font-medium border border-danger text-danger rounded-lg hover:bg-danger/10 transition-colors">
+          <button
+            onClick={async () => {
+              await supabase.from('applicants').update({ status: 'rejected' }).eq('id', applicant.id);
+              router.push('/candidates');
+            }}
+            className="px-5 py-2.5 text-sm font-medium border border-danger text-danger rounded-lg hover:bg-danger/10 transition-colors"
+          >
             Reject Candidate
           </button>
           <button

@@ -106,21 +106,21 @@ export default function ApplyPage() {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="w-full max-w-lg text-center">
           <div className="mb-6">
-            <span className="text-2xl font-bold text-white tracking-tight">
+            <span className="text-2xl font-bold text-gray-900 tracking-tight">
               RECRUIT<span className="text-[#FF6B35]">.AI</span>
             </span>
           </div>
-          <div className="bg-[#242424] rounded-2xl border border-[#333333] p-8 md:p-12">
-            <div className="w-16 h-16 bg-[#FF6B35]/20 rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className="bg-white rounded-2xl border border-gray-200 p-8 md:p-12">
+            <div className="w-16 h-16 bg-[#FF6B35]/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <svg className="w-8 h-8 text-[#FF6B35]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-white mb-3">Application Submitted!</h2>
-            <p className="text-gray-400 text-base leading-relaxed">
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">Application Submitted!</h2>
+            <p className="text-gray-500 text-base leading-relaxed">
               Our AI is reviewing your profile. You will hear from us soon.
             </p>
           </div>
@@ -130,24 +130,24 @@ export default function ApplyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-2xl">
         {/* Logo */}
         <div className="text-center mb-8">
-          <span className="text-3xl font-bold text-white tracking-tight">
+          <span className="text-3xl font-bold text-gray-900 tracking-tight">
             RECRUIT<span className="text-[#FF6B35]">.AI</span>
           </span>
-          <p className="text-gray-400 mt-2 text-sm">AI-Powered Recruitment Platform</p>
+          <p className="text-gray-500 mt-2 text-sm">AI-Powered Recruitment Platform</p>
         </div>
 
         {/* Form Card */}
-        <div className="bg-[#242424] rounded-2xl border border-[#333333] p-6 md:p-10">
-          <h1 className="text-xl font-semibold text-white mb-1">Apply Now</h1>
-          <p className="text-gray-400 text-sm mb-8">Fill in your details below to submit your application.</p>
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 md:p-10">
+          <h1 className="text-xl font-semibold text-gray-900 mb-1">Apply Now</h1>
+          <p className="text-gray-500 text-sm mb-8">Fill in your details below to submit your application.</p>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 mb-6">
-              <p className="text-red-400 text-sm">{error}</p>
+            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-6">
+              <p className="text-red-600 text-sm">{error}</p>
             </div>
           )}
 
@@ -155,7 +155,7 @@ export default function ApplyPage() {
             {/* Name & Email row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1.5">
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1.5">
                   Full Name <span className="text-[#FF6B35]">*</span>
                 </label>
                 <input
@@ -166,11 +166,11 @@ export default function ApplyPage() {
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="John Doe"
-                  className="w-full bg-[#1a1a1a] border border-[#333333] rounded-lg px-4 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] transition-colors"
+                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] transition-colors"
                 />
               </div>
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1.5">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
                   Email <span className="text-[#FF6B35]">*</span>
                 </label>
                 <input
@@ -181,7 +181,7 @@ export default function ApplyPage() {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="john@example.com"
-                  className="w-full bg-[#1a1a1a] border border-[#333333] rounded-lg px-4 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] transition-colors"
+                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] transition-colors"
                 />
               </div>
             </div>
@@ -189,7 +189,7 @@ export default function ApplyPage() {
             {/* Phone & Job Title row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-300 mb-1.5">
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1.5">
                   Phone <span className="text-[#FF6B35]">*</span>
                 </label>
                 <input
@@ -200,11 +200,11 @@ export default function ApplyPage() {
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="+1 (555) 000-0000"
-                  className="w-full bg-[#1a1a1a] border border-[#333333] rounded-lg px-4 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] transition-colors"
+                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] transition-colors"
                 />
               </div>
               <div>
-                <label htmlFor="job_title" className="block text-sm font-medium text-gray-300 mb-1.5">
+                <label htmlFor="job_title" className="block text-sm font-medium text-gray-700 mb-1.5">
                   Current Job Title <span className="text-[#FF6B35]">*</span>
                 </label>
                 <input
@@ -215,14 +215,14 @@ export default function ApplyPage() {
                   value={formData.job_title}
                   onChange={handleChange}
                   placeholder="Senior Software Engineer"
-                  className="w-full bg-[#1a1a1a] border border-[#333333] rounded-lg px-4 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] transition-colors"
+                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] transition-colors"
                 />
               </div>
             </div>
 
             {/* Years of Experience */}
             <div className="max-w-[200px]">
-              <label htmlFor="years_experience" className="block text-sm font-medium text-gray-300 mb-1.5">
+              <label htmlFor="years_experience" className="block text-sm font-medium text-gray-700 mb-1.5">
                 Years of Experience <span className="text-[#FF6B35]">*</span>
               </label>
               <input
@@ -235,13 +235,13 @@ export default function ApplyPage() {
                 value={formData.years_experience}
                 onChange={handleChange}
                 placeholder="5"
-                className="w-full bg-[#1a1a1a] border border-[#333333] rounded-lg px-4 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] transition-colors"
+                className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] transition-colors"
               />
             </div>
 
             {/* Cover Letter */}
             <div>
-              <label htmlFor="cover_letter" className="block text-sm font-medium text-gray-300 mb-1.5">
+              <label htmlFor="cover_letter" className="block text-sm font-medium text-gray-700 mb-1.5">
                 Cover Letter <span className="text-[#FF6B35]">*</span>
               </label>
               <textarea
@@ -252,13 +252,13 @@ export default function ApplyPage() {
                 value={formData.cover_letter}
                 onChange={handleChange}
                 placeholder="Tell us about yourself and why you're a great fit for this role..."
-                className="w-full bg-[#1a1a1a] border border-[#333333] rounded-lg px-4 py-3 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] transition-colors resize-vertical"
+                className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-3 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] transition-colors resize-vertical"
               />
             </div>
 
             {/* Resume Upload */}
             <div>
-              <label htmlFor="resume" className="block text-sm font-medium text-gray-300 mb-1.5">
+              <label htmlFor="resume" className="block text-sm font-medium text-gray-700 mb-1.5">
                 Resume (PDF)
               </label>
               <div className="relative">
@@ -271,7 +271,7 @@ export default function ApplyPage() {
                 />
                 <label
                   htmlFor="resume"
-                  className="flex items-center justify-center gap-2 w-full bg-[#1a1a1a] border border-dashed border-[#444444] rounded-lg px-4 py-4 text-gray-400 text-sm cursor-pointer hover:border-[#FF6B35] hover:text-gray-300 transition-colors"
+                  className="flex items-center justify-center gap-2 w-full bg-gray-50 border border-dashed border-gray-300 rounded-lg px-4 py-4 text-gray-500 text-sm cursor-pointer hover:border-[#FF6B35] hover:text-gray-700 transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
