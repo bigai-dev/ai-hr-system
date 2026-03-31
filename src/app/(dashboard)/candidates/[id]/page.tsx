@@ -451,7 +451,7 @@ export default function CandidateDetailPage() {
                   <span className="text-[10px] text-muted bg-background px-2.5 py-1 rounded-full">PDF</span>
                 </div>
                 <div className="p-6">
-                  <div className="bg-white text-gray-900 rounded-lg p-8 shadow-inner min-h-[500px]">
+                  <div className="bg-white text-gray-900 rounded-lg p-8 shadow-inner min-h-[500px] max-h-[600px] overflow-y-auto">
                     {/* Header */}
                     <div className="border-b-2 border-gray-200 pb-4 mb-6">
                       <h2 className="text-2xl font-bold text-gray-900">{applicant.name}</h2>
@@ -462,55 +462,63 @@ export default function CandidateDetailPage() {
                       </div>
                     </div>
 
-                    {/* Professional Summary */}
-                    <div className="mb-6">
-                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                        Professional Summary
-                      </h3>
-                      <p className="text-sm text-gray-700 leading-relaxed">
-                        {applicant.ai_reasoning
-                          ? applicant.ai_reasoning
-                          : applicant.cover_letter
-                            ? applicant.cover_letter
-                            : `Experienced ${applicant.job_title.toLowerCase()} with ${applicant.years_experience}+ years of professional experience. Cover letter available in Application Preview tab.`}
-                      </p>
-                    </div>
-
-                    {/* Skills */}
-                    {applicant.ai_extracted_skills && applicant.ai_extracted_skills.length > 0 && (
-                      <div className="mb-6">
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                          Skills
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                          {applicant.ai_extracted_skills.map((skill, i) => (
-                            <span
-                              key={i}
-                              className="text-xs bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
+                    {applicant.resume_text ? (
+                      <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                        {applicant.resume_text}
                       </div>
+                    ) : (
+                      <>
+                        {/* Professional Summary */}
+                        <div className="mb-6">
+                          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+                            Professional Summary
+                          </h3>
+                          <p className="text-sm text-gray-700 leading-relaxed">
+                            {applicant.ai_reasoning
+                              ? applicant.ai_reasoning
+                              : applicant.cover_letter
+                                ? applicant.cover_letter
+                                : `Experienced ${applicant.job_title.toLowerCase()} with ${applicant.years_experience}+ years of professional experience. Cover letter available in Application Preview tab.`}
+                          </p>
+                        </div>
+
+                        {/* Skills */}
+                        {applicant.ai_extracted_skills && applicant.ai_extracted_skills.length > 0 && (
+                          <div className="mb-6">
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+                              Skills
+                            </h3>
+                            <div className="flex flex-wrap gap-2">
+                              {applicant.ai_extracted_skills.map((skill, i) => (
+                                <span
+                                  key={i}
+                                  className="text-xs bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full"
+                                >
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Experience Summary */}
+                        <div className="mb-6">
+                          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+                            Experience
+                          </h3>
+                          <p className="text-sm text-gray-700">
+                            {applicant.years_experience}+ years as {applicant.job_title}
+                          </p>
+                        </div>
+
+                        {/* Download Link */}
+                        <div className="pt-4 border-t border-gray-200">
+                          <p className="text-xs text-gray-400 italic">
+                            Full resume available for download
+                          </p>
+                        </div>
+                      </>
                     )}
-
-                    {/* Experience Summary */}
-                    <div className="mb-6">
-                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                        Experience
-                      </h3>
-                      <p className="text-sm text-gray-700">
-                        {applicant.years_experience}+ years as {applicant.job_title}
-                      </p>
-                    </div>
-
-                    {/* Download Link */}
-                    <div className="pt-4 border-t border-gray-200">
-                      <p className="text-xs text-gray-400 italic">
-                        Full resume available for download
-                      </p>
-                    </div>
                   </div>
                 </div>
               </div>

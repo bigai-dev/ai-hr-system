@@ -10,6 +10,10 @@ export default function CandidatesPage() {
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [filter, setFilter] = useState<'all' | 'screening' | 'scheduled'>('all');
   const [search, setSearch] = useState('');
+  const [scheduleModal, setScheduleModal] = useState<{id: string, name: string} | null>(null);
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('14:00');
+  const [scheduleType, setScheduleType] = useState('Technical Screen');
 
   useEffect(() => {
     fetchApplicants();
@@ -23,22 +27,30 @@ export default function CandidatesPage() {
     if (data) setApplicants(data);
   }
 
-  async function handleSchedule(applicantId: string) {
+  function openScheduleModal(applicantId: string, applicantName: string) {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateStr = tomorrow.toISOString().split('T')[0];
+    setScheduleDate(tomorrow.toISOString().split('T')[0]);
+    setScheduleTime('14:00');
+    setScheduleType('Technical Screen');
+    setScheduleModal({id: applicantId, name: applicantName});
+  }
+
+  async function confirmSchedule() {
+    if (!scheduleModal) return;
 
     await supabase.from('interviews').insert({
-      applicant_id: applicantId,
-      scheduled_date: dateStr,
-      scheduled_time: '14:00',
+      applicant_id: scheduleModal.id,
+      scheduled_date: scheduleDate,
+      scheduled_time: scheduleTime,
       duration_minutes: 60,
-      type: 'Technical Round',
+      type: scheduleType,
       status: 'scheduled',
     });
 
-    await supabase.from('applicants').update({ status: 'scheduled' }).eq('id', applicantId);
+    await supabase.from('applicants').update({ status: 'scheduled' }).eq('id', scheduleModal.id);
 
+    setScheduleModal(null);
     fetchApplicants();
   }
 
@@ -210,7 +222,7 @@ export default function CandidatesPage() {
                         <Link href={`/candidates/${a.id}`} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#333] text-gray-500 dark:text-[#9ca3af] hover:text-gray-900 dark:hover:text-white" title="View">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                         </Link>
-                        <button onClick={() => handleSchedule(a.id)} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#333] text-gray-500 dark:text-[#9ca3af] hover:text-gray-900 dark:hover:text-white" title="Schedule">
+                        <button onClick={() => openScheduleModal(a.id, a.name)} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#333] text-gray-500 dark:text-[#9ca3af] hover:text-gray-900 dark:hover:text-white" title="Schedule">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                         </button>
                         <button onClick={() => handleDelete(a.id)} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#333] text-gray-500 dark:text-[#9ca3af] hover:text-red-400" title="Remove">
@@ -232,6 +244,91 @@ export default function CandidatesPage() {
           </div>
         </div>
       </div>
+
+      {/* Schedule Interview Modal */}
+      {scheduleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#242424] border border-gray-200 dark:border-[#333] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-[#333] flex items-center justify-between">
+              <h2 className="text-base font-bold">Schedule Interview</h2>
+              <button onClick={() => setScheduleModal(null)} className="p-1 text-gray-400 dark:text-[#9ca3af] hover:text-gray-900 dark:hover:text-white transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5 space-y-4">
+              <div className="text-sm text-gray-500 dark:text-[#9ca3af]">
+                Scheduling interview for <span className="font-semibold text-gray-900 dark:text-white">{scheduleModal.name}</span>
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-[#9ca3af] uppercase tracking-wider mb-1.5">Date</label>
+                <input
+                  type="date"
+                  value={scheduleDate}
+                  onChange={(e) => setScheduleDate(e.target.value)}
+                  className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none text-gray-900 dark:text-white focus:border-[#FF6B35] transition-colors"
+                />
+              </div>
+
+              {/* Time */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-[#9ca3af] uppercase tracking-wider mb-1.5">Time</label>
+                <select
+                  value={scheduleTime}
+                  onChange={(e) => setScheduleTime(e.target.value)}
+                  className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none text-gray-900 dark:text-white focus:border-[#FF6B35] transition-colors"
+                >
+                  <option value="09:00">9:00 AM</option>
+                  <option value="10:00">10:00 AM</option>
+                  <option value="11:00">11:00 AM</option>
+                  <option value="12:00">12:00 PM</option>
+                  <option value="13:00">1:00 PM</option>
+                  <option value="14:00">2:00 PM</option>
+                  <option value="15:00">3:00 PM</option>
+                  <option value="16:00">4:00 PM</option>
+                </select>
+              </div>
+
+              {/* Interview Type */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-[#9ca3af] uppercase tracking-wider mb-1.5">Interview Type</label>
+                <select
+                  value={scheduleType}
+                  onChange={(e) => setScheduleType(e.target.value)}
+                  className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none text-gray-900 dark:text-white focus:border-[#FF6B35] transition-colors"
+                >
+                  <option value="Technical Screen">Technical Screen</option>
+                  <option value="HR Interview">HR Interview</option>
+                  <option value="Portfolio Review">Portfolio Review</option>
+                  <option value="Final Round">Final Round</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-[#333] flex items-center justify-end gap-3">
+              <button
+                onClick={() => setScheduleModal(null)}
+                className="px-5 py-2.5 text-sm font-medium border border-gray-200 dark:border-[#333] rounded-lg hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmSchedule}
+                className="px-5 py-2.5 text-sm font-bold bg-[#FF6B35] hover:bg-[#e85a25] text-white rounded-lg transition-colors"
+              >
+                Schedule Interview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ export interface Applicant {
   years_experience: number;
   cover_letter: string;
   resume_url: string | null;
+  resume_text: string | null;
   status: 'new' | 'screening' | 'screened' | 'scheduled' | 'rejected';
   ai_match_score: number | null;
   ai_reasoning: string | null;

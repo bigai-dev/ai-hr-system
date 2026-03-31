@@ -16,14 +16,6 @@ const SAMPLE_INTERVIEWS = [
   { name: 'Marcus Lee', type: 'Final Round', day: 0, hour: 15, duration: 45 },
 ];
 
-const AVAILABLE_SLOTS = [
-  { day: 0, hour: 9, label: 'AVAILABLE' },
-  { day: 1, hour: 13, label: 'AVAILABLE' },
-  { day: 2, hour: 10, label: 'AVAILABLE' },
-  { day: 3, hour: 15, label: 'AVAILABLE' },
-  { day: 4, hour: 13, label: 'AVAILABLE' },
-];
-
 const ACTIVITY_ITEMS = [
   { name: 'Alex Rivera', action: 'invited', time: '2M AGO', color: 'text-[#FF6B35]' },
   { name: 'Sarah Chen', action: 'confirmed', time: '1H AGO', color: 'text-[#10b981]' },
@@ -166,7 +158,6 @@ export default function SchedulingPage() {
                     </div>
                     {DAY_LABELS.map((_, dayIdx) => {
                       const interview = SAMPLE_INTERVIEWS.find((s) => s.day === dayIdx && s.hour === hour);
-                      const available = AVAILABLE_SLOTS.find((s) => s.day === dayIdx && s.hour === hour);
 
                       return (
                         <div key={dayIdx} className="border-l border-gray-200/50 dark:border-[#333333]/50 relative px-1 py-0.5">
@@ -174,12 +165,6 @@ export default function SchedulingPage() {
                             <div className="absolute inset-x-1 top-1 bg-[#FF6B35]/15 border border-[#FF6B35]/30 rounded-md p-1.5 cursor-pointer hover:bg-[#FF6B35]/25 transition-colors z-10" style={{ height: Math.max(30, (interview.duration / 60) * 68) }}>
                               <div className="text-xs font-semibold text-[#FF6B35] truncate">{interview.name}</div>
                               <div className="text-[10px] text-[#FF6B35]/70 truncate">{interview.type}</div>
-                            </div>
-                          )}
-                          {available && !interview && (
-                            <div className="absolute inset-x-1 top-1 bg-[#10b981]/10 border border-[#10b981]/20 rounded-md p-1.5 h-[30px]">
-                              <div className="text-[10px] font-medium text-[#10b981] uppercase tracking-wider">Available</div>
-                              <div className="text-[9px] text-[#10b981]/60">Bot Managed</div>
                             </div>
                           )}
                         </div>
@@ -260,14 +245,6 @@ export default function SchedulingPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500 dark:text-[#9ca3af]">Completed</span>
                   <span className="font-semibold text-[#10b981]">2</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-[#9ca3af]">Available Slots</span>
-                  <span className="font-semibold">8</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-[#9ca3af]">Bot Managed</span>
-                  <span className="font-semibold text-[#10b981]">100%</span>
                 </div>
               </div>
             </div>

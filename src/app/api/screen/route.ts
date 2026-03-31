@@ -33,6 +33,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Extract text from PDF resume if available
+    let resumeText = '';
+    if (applicant.resume_url) {
+      try {
+        const pdfResponse = await fetch(applicant.resume_url);
+        const pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const pdfParse = require('pdf-parse');
+        const pdfData = await pdfParse(pdfBuffer);
+        resumeText = pdfData.text;
+      } catch (e) {
+        console.error('PDF parse error:', e);
+      }
+    }
+
     // Update status to screening
     await supabase
       .from('applicants')
@@ -54,7 +69,12 @@ CANDIDATE DETAILS:
 - Name: ${applicant.name}
 - Current Job Title: ${applicant.job_title}
 - Years of Experience: ${applicant.years_experience}
-- Cover Letter: ${applicant.cover_letter}
+
+CANDIDATE RESUME (extracted from PDF):
+${resumeText || 'No resume uploaded'}
+
+CANDIDATE COVER LETTER:
+${applicant.cover_letter || 'No cover letter provided'}
 
 JOB DESCRIPTION:
 ${JOB_DESCRIPTION}`,
@@ -93,6 +113,7 @@ ${JOB_DESCRIPTION}`,
         ai_match_score: aiAnalysis.match_score,
         ai_reasoning: aiAnalysis.reasoning,
         ai_extracted_skills: aiAnalysis.extracted_skills,
+        resume_text: resumeText || null,
         status: 'screened',
       })
       .eq('id', applicantId);
