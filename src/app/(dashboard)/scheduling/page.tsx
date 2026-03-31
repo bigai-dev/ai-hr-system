@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import TopBar from '@/components/TopBar';
 import { supabase } from '@/lib/supabase';
 import type { Interview } from '@/lib/types';
@@ -8,12 +8,23 @@ import type { Interview } from '@/lib/types';
 const HOURS = [9, 10, 11, 12, 13, 14, 15, 16];
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-const SAMPLE_INTERVIEWS = [
-  { name: 'Alex Rivera', type: 'Technical Screen', day: 1, hour: 10, duration: 60 },
-  { name: 'Sarah Chen', type: 'HR Interview', day: 2, hour: 14, duration: 45 },
-  { name: 'James Wilson', type: 'Portfolio Review', day: 3, hour: 11, duration: 30 },
-  { name: 'Priya Patel', type: 'Technical Screen', day: 4, hour: 9, duration: 60 },
-  { name: 'Marcus Lee', type: 'Final Round', day: 0, hour: 15, duration: 45 },
+interface CalendarInterview {
+  id?: string;         // DB id (undefined for sample interviews)
+  name: string;
+  type: string;
+  day: number;         // 0=Mon to 6=Sun
+  hour: number;
+  duration: number;    // minutes
+  isSample: boolean;
+  dbInterview?: Interview; // full DB record for real interviews
+}
+
+const SAMPLE_INTERVIEWS: CalendarInterview[] = [
+  { name: 'Alex Rivera', type: 'Technical Screen', day: 1, hour: 10, duration: 60, isSample: true },
+  { name: 'Sarah Chen', type: 'HR Interview', day: 2, hour: 14, duration: 45, isSample: true },
+  { name: 'James Wilson', type: 'Portfolio Review', day: 3, hour: 11, duration: 30, isSample: true },
+  { name: 'Priya Patel', type: 'Technical Screen', day: 4, hour: 9, duration: 60, isSample: true },
+  { name: 'Marcus Lee', type: 'Final Round', day: 0, hour: 15, duration: 45, isSample: true },
 ];
 
 const ACTIVITY_ITEMS = [
@@ -62,8 +73,10 @@ export default function SchedulingPage() {
   const weekEnd = weekDates[6];
   const weekRangeStr = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
-  // Interview dates for orange dots on mini calendar
-  const interviewDays = new Set(SAMPLE_INTERVIEWS.map((i) => weekDates[i.day]?.getDate()));
+  // Popup state for click-to-manage
+  const [selectedInterview, setSelectedInterview] = useState<CalendarInterview | null>(null);
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function fetchInterviews() {
@@ -75,6 +88,101 @@ export default function SchedulingPage() {
     }
     fetchInterviews();
   }, []);
+
+  // Convert DB interviews to calendar format and merge with samples
+  const calendarInterviews = useMemo(() => {
+    const mondayDate = weekDates[0];
+    const sundayDate = weekDates[6];
+
+    const realInterviews: CalendarInterview[] = interviews
+      .map((iv) => {
+        // Parse scheduled_date (YYYY-MM-DD) and determine day index relative to this week
+        const dateObj = new Date(iv.scheduled_date + 'T00:00:00');
+        // Check if the interview is within the current week
+        if (dateObj < mondayDate || dateObj > sundayDate) return null;
+
+        const dayIndex = (dateObj.getDay() + 6) % 7; // 0=Mon to 6=Sun
+
+        // Parse hour from scheduled_time (HH:MM or HH:MM:SS)
+        const timeParts = iv.scheduled_time?.split(':');
+        const hour = timeParts ? parseInt(timeParts[0], 10) : 9;
+
+        return {
+          id: iv.id,
+          name: iv.applicant?.name || 'Unknown',
+          type: iv.type || 'Interview',
+          day: dayIndex,
+          hour,
+          duration: iv.duration_minutes || 30,
+          isSample: false,
+          dbInterview: iv,
+        } as CalendarInterview;
+      })
+      .filter((x): x is CalendarInterview => x !== null);
+
+    return [...SAMPLE_INTERVIEWS, ...realInterviews];
+  }, [interviews, weekDates]);
+
+  // Interview dates for orange dots on mini calendar
+  const interviewDays = new Set(calendarInterviews.map((i) => weekDates[i.day]?.getDate()));
+
+  // Handle interview block click
+  const handleInterviewClick = useCallback(
+    (interview: CalendarInterview, e: React.MouseEvent) => {
+      e.stopPropagation();
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const scrollContainer = (e.currentTarget as HTMLElement).closest('.overflow-x-auto');
+      const containerRect = scrollContainer?.getBoundingClientRect() || { top: 0, left: 0 };
+
+      setPopupPos({
+        top: rect.top - containerRect.top + 40,
+        left: rect.left - containerRect.left + rect.width / 2,
+      });
+      setSelectedInterview(interview);
+    },
+    []
+  );
+
+  // Delete interview from Supabase
+  const handleDelete = useCallback(
+    async (interview: CalendarInterview) => {
+      if (interview.isSample || !interview.id) {
+        // Sample interviews can't be deleted, just close popup
+        setSelectedInterview(null);
+        return;
+      }
+      // Delete the interview
+      await supabase.from('interviews').delete().eq('id', interview.id);
+      // Reset applicant status back to screened
+      if (interview.dbInterview?.applicant_id) {
+        await supabase
+          .from('applicants')
+          .update({ status: 'screened' })
+          .eq('id', interview.dbInterview.applicant_id);
+      }
+      // Refresh interviews
+      const { data } = await supabase
+        .from('interviews')
+        .select('*, applicant:applicants(*)')
+        .order('scheduled_date', { ascending: true });
+      if (data) setInterviews(data);
+      setSelectedInterview(null);
+    },
+    []
+  );
+
+  // Close popup when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        setSelectedInterview(null);
+      }
+    }
+    if (selectedInterview) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [selectedInterview]);
 
   return (
     <div className="flex flex-col h-screen">
@@ -126,7 +234,7 @@ export default function SchedulingPage() {
             </div>
 
             {/* Calendar grid */}
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto relative">
               <div className="min-w-[700px]">
                 {/* Day headers */}
                 <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-gray-200 dark:border-[#333]">
@@ -157,22 +265,120 @@ export default function SchedulingPage() {
                       {hour <= 12 ? `${hour}:00 AM` : `${hour - 12}:00 PM`}
                     </div>
                     {DAY_LABELS.map((_, dayIdx) => {
-                      const interview = SAMPLE_INTERVIEWS.find((s) => s.day === dayIdx && s.hour === hour);
+                      const matchingInterviews = calendarInterviews.filter((s) => s.day === dayIdx && s.hour === hour);
 
                       return (
                         <div key={dayIdx} className="border-l border-gray-200/50 dark:border-[#333333]/50 relative px-1 py-0.5">
-                          {interview && (
-                            <div className="absolute inset-x-1 top-1 bg-[#FF6B35]/15 border border-[#FF6B35]/30 rounded-md p-1.5 cursor-pointer hover:bg-[#FF6B35]/25 transition-colors z-10" style={{ height: Math.max(30, (interview.duration / 60) * 68) }}>
-                              <div className="text-xs font-semibold text-[#FF6B35] truncate">{interview.name}</div>
-                              <div className="text-[10px] text-[#FF6B35]/70 truncate">{interview.type}</div>
+                          {matchingInterviews.map((interview, idx) => (
+                            <div
+                              key={interview.id || `sample-${interview.name}-${idx}`}
+                              onClick={(e) => handleInterviewClick(interview, e)}
+                              className={`absolute inset-x-1 top-1 rounded-md p-1.5 cursor-pointer transition-colors z-10 ${
+                                interview.isSample
+                                  ? 'bg-[#FF6B35]/15 border border-[#FF6B35]/30 hover:bg-[#FF6B35]/25'
+                                  : 'bg-[#3b82f6]/15 border border-[#3b82f6]/30 hover:bg-[#3b82f6]/25'
+                              }`}
+                              style={{ height: Math.max(30, (interview.duration / 60) * 68) }}
+                            >
+                              <div className={`text-xs font-semibold truncate ${interview.isSample ? 'text-[#FF6B35]' : 'text-[#3b82f6]'}`}>
+                                {interview.name}
+                              </div>
+                              <div className={`text-[10px] truncate ${interview.isSample ? 'text-[#FF6B35]/70' : 'text-[#3b82f6]/70'}`}>
+                                {interview.type}
+                              </div>
                             </div>
-                          )}
+                          ))}
                         </div>
                       );
                     })}
                   </div>
                 ))}
               </div>
+
+              {/* Interview detail popup */}
+              {selectedInterview && (
+                <div
+                  ref={popupRef}
+                  className="absolute z-50 w-72 bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#444] rounded-xl shadow-2xl p-4"
+                  style={{
+                    top: popupPos.top,
+                    left: Math.min(popupPos.left, 500),
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-white">Interview Details</h4>
+                    <button
+                      onClick={() => setSelectedInterview(null)}
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
+                        selectedInterview.isSample
+                          ? 'bg-[#FF6B35]/10 text-[#FF6B35]'
+                          : 'bg-[#3b82f6]/10 text-[#3b82f6]'
+                      }`}>
+                        {selectedInterview.name.split(' ').map((n) => n[0]).join('')}
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white">{selectedInterview.name}</div>
+                        <div className="text-xs text-gray-500 dark:text-[#9ca3af]">{selectedInterview.type}</div>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-[#9ca3af] space-y-1 pl-9">
+                      <div className="flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        {DAY_LABELS[selectedInterview.day]}, {weekDates[selectedInterview.day]?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {selectedInterview.hour <= 12 ? `${selectedInterview.hour}:00 AM` : `${selectedInterview.hour - 12}:00 PM`} - {selectedInterview.duration}min
+                      </div>
+                    </div>
+                    {selectedInterview.isSample && (
+                      <div className="text-[10px] text-gray-400 dark:text-[#666] italic pl-9">Sample data (demo only)</div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    {!selectedInterview.isSample && (
+                      <>
+                        <button
+                          onClick={() => handleDelete(selectedInterview)}
+                          className="flex-1 px-3 py-2 text-xs font-semibold rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                        >
+                          Delete
+                        </button>
+                        <button
+                          onClick={() => {
+                            // For demo: delete and show the schedule modal concept
+                            handleDelete(selectedInterview);
+                          }}
+                          className="flex-1 px-3 py-2 text-xs font-semibold rounded-lg bg-[#FF6B35]/10 text-[#FF6B35] hover:bg-[#FF6B35]/20 transition-colors"
+                        >
+                          Reschedule
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => setSelectedInterview(null)}
+                      className="flex-1 px-3 py-2 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-[#333] text-gray-600 dark:text-[#9ca3af] hover:bg-gray-200 dark:hover:bg-[#444] transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

@@ -37,12 +37,11 @@ export async function POST(request: NextRequest) {
     let resumeText = '';
     if (applicant.resume_url) {
       try {
+        const { extractText } = await import('unpdf');
         const pdfResponse = await fetch(applicant.resume_url);
-        const pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pdfParse = require('pdf-parse');
-        const pdfData = await pdfParse(pdfBuffer);
-        resumeText = pdfData.text;
+        const pdfBuffer = new Uint8Array(await pdfResponse.arrayBuffer());
+        const { text } = await extractText(pdfBuffer);
+        resumeText = Array.isArray(text) ? text.join('\n') : String(text);
       } catch (e) {
         console.error('PDF parse error:', e);
       }
