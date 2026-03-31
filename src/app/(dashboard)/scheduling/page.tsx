@@ -98,7 +98,7 @@ export default function SchedulingPage() {
                   Active Bot
                 </span>
               </h2>
-              <p className="text-sm text-[#9ca3af] mt-1">
+              <p className="text-sm text-gray-500 dark:text-[#9ca3af] mt-1">
                 AI-powered scheduling manages availability and sends invitations automatically
               </p>
             </div>
@@ -113,21 +113,21 @@ export default function SchedulingPage() {
 
         <div className="flex gap-6">
           {/* Main calendar area */}
-          <div className="flex-1 bg-[#242424] border border-[#333333] rounded-xl overflow-hidden">
+          <div className="flex-1 bg-white dark:bg-[#242424] border border-gray-200 dark:border-[#333] rounded-xl overflow-hidden">
             {/* Calendar header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#333333]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-[#333]">
               <div>
                 <h3 className="text-base font-semibold">Weekly Availability</h3>
-                <p className="text-xs text-[#9ca3af] mt-0.5">{weekRangeStr}</p>
+                <p className="text-xs text-gray-500 dark:text-[#9ca3af] mt-0.5">{weekRangeStr}</p>
               </div>
-              <div className="flex items-center gap-1 bg-[#1a1a1a] rounded-lg p-1">
+              <div className="flex items-center gap-1 bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-1">
                 <button className="px-3 py-1.5 text-xs font-medium rounded-md bg-[#FF6B35] text-white">
                   Week
                 </button>
-                <button className="px-3 py-1.5 text-xs font-medium rounded-md text-[#9ca3af] hover:text-white transition-colors">
+                <button className="px-3 py-1.5 text-xs font-medium rounded-md text-gray-500 dark:text-[#9ca3af] hover:text-gray-900 dark:hover:text-white transition-colors">
                   Month
                 </button>
-                <button className="px-3 py-1.5 text-xs font-medium rounded-md text-[#9ca3af] hover:text-white transition-colors">
+                <button className="px-3 py-1.5 text-xs font-medium rounded-md text-gray-500 dark:text-[#9ca3af] hover:text-gray-900 dark:hover:text-white transition-colors">
                   Agenda
                 </button>
               </div>
@@ -137,17 +137,17 @@ export default function SchedulingPage() {
             <div className="overflow-x-auto">
               <div className="min-w-[700px]">
                 {/* Day headers */}
-                <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-[#333333]">
+                <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-gray-200 dark:border-[#333]">
                   <div className="p-2" />
                   {DAY_LABELS.map((label, i) => {
                     const date = weekDates[i];
                     const isToday = i === todayDayIndex;
                     return (
-                      <div key={label} className="p-2 text-center border-l border-[#333333]">
-                        <div className={`text-xs font-medium uppercase tracking-wider ${isToday ? 'text-[#FF6B35]' : 'text-[#9ca3af]'}`}>
+                      <div key={label} className="p-2 text-center border-l border-gray-200 dark:border-[#333]">
+                        <div className={`text-xs font-medium uppercase tracking-wider ${isToday ? 'text-[#FF6B35]' : 'text-gray-500 dark:text-[#9ca3af]'}`}>
                           {label}
                         </div>
-                        <div className={`text-lg font-bold mt-0.5 ${isToday ? 'text-[#FF6B35]' : 'text-white'}`}>
+                        <div className={`text-lg font-bold mt-0.5 ${isToday ? 'text-[#FF6B35]' : 'text-gray-900 dark:text-white'}`}>
                           {date.getDate()}
                         </div>
                         {isToday && (
@@ -160,8 +160,8 @@ export default function SchedulingPage() {
 
                 {/* Time rows */}
                 {HOURS.map((hour) => (
-                  <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-[#333333]/50 relative" style={{ height: 72 }}>
-                    <div className="p-2 text-xs text-[#9ca3af] text-right pr-3 pt-1">
+                  <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-gray-200/50 dark:border-[#333333]/50 relative" style={{ height: 72 }}>
+                    <div className="p-2 text-xs text-gray-500 dark:text-[#9ca3af] text-right pr-3 pt-1">
                       {hour <= 12 ? `${hour}:00 AM` : `${hour - 12}:00 PM`}
                     </div>
                     {DAY_LABELS.map((_, dayIdx) => {
@@ -169,7 +169,7 @@ export default function SchedulingPage() {
                       const available = AVAILABLE_SLOTS.find((s) => s.day === dayIdx && s.hour === hour);
 
                       return (
-                        <div key={dayIdx} className="border-l border-[#333333]/50 relative px-1 py-0.5">
+                        <div key={dayIdx} className="border-l border-gray-200/50 dark:border-[#333333]/50 relative px-1 py-0.5">
                           {interview && (
                             <div className="absolute inset-x-1 top-1 bg-[#FF6B35]/15 border border-[#FF6B35]/30 rounded-md p-1.5 cursor-pointer hover:bg-[#FF6B35]/25 transition-colors z-10" style={{ height: Math.max(30, (interview.duration / 60) * 68) }}>
                               <div className="text-xs font-semibold text-[#FF6B35] truncate">{interview.name}</div>
@@ -194,14 +194,14 @@ export default function SchedulingPage() {
           {/* Right sidebar */}
           <div className="w-72 flex-shrink-0 space-y-5">
             {/* Month Preview */}
-            <div className="bg-[#242424] border border-[#333333] rounded-xl p-4">
+            <div className="bg-white dark:bg-[#242424] border border-gray-200 dark:border-[#333] rounded-xl p-4">
               <h4 className="text-sm font-semibold mb-3">Month Preview</h4>
-              <div className="text-xs text-[#9ca3af] mb-3 font-medium">
+              <div className="text-xs text-gray-500 dark:text-[#9ca3af] mb-3 font-medium">
                 {monthName} {today.getFullYear()}
               </div>
               <div className="grid grid-cols-7 gap-y-1 text-center">
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-                  <div key={i} className="text-[10px] text-[#9ca3af] font-semibold pb-1">{d}</div>
+                  <div key={i} className="text-[10px] text-gray-500 dark:text-[#9ca3af] font-semibold pb-1">{d}</div>
                 ))}
                 {monthGrid.map((day, i) => {
                   const isToday = day === todayDate;
@@ -212,7 +212,7 @@ export default function SchedulingPage() {
                         isToday
                           ? 'bg-[#FF6B35] text-white font-bold'
                           : day
-                          ? 'text-[#9ca3af] hover:bg-[#333333] cursor-pointer'
+                          ? 'text-gray-500 dark:text-[#9ca3af] hover:bg-gray-100 dark:hover:bg-[#333] cursor-pointer'
                           : ''
                       }`}>
                         {day || ''}
@@ -227,7 +227,7 @@ export default function SchedulingPage() {
             </div>
 
             {/* Recent Activity */}
-            <div className="bg-[#242424] border border-[#333333] rounded-xl p-4">
+            <div className="bg-white dark:bg-[#242424] border border-gray-200 dark:border-[#333] rounded-xl p-4">
               <h4 className="text-sm font-semibold mb-3">Recent Activity</h4>
               <div className="space-y-3">
                 {ACTIVITY_ITEMS.map((item, i) => (
@@ -240,7 +240,7 @@ export default function SchedulingPage() {
                         <span className="font-medium">{item.name}</span>{' '}
                         <span className={item.color}>{item.action}</span>
                       </div>
-                      <div className="text-[10px] text-[#9ca3af] uppercase tracking-wider mt-0.5">
+                      <div className="text-[10px] text-gray-500 dark:text-[#9ca3af] uppercase tracking-wider mt-0.5">
                         {item.time}
                       </div>
                     </div>
@@ -250,23 +250,23 @@ export default function SchedulingPage() {
             </div>
 
             {/* Stats */}
-            <div className="bg-[#242424] border border-[#333333] rounded-xl p-4">
+            <div className="bg-white dark:bg-[#242424] border border-gray-200 dark:border-[#333] rounded-xl p-4">
               <h4 className="text-sm font-semibold mb-3">This Week</h4>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-[#9ca3af]">Scheduled</span>
+                  <span className="text-gray-500 dark:text-[#9ca3af]">Scheduled</span>
                   <span className="font-semibold text-[#FF6B35]">5</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-[#9ca3af]">Completed</span>
+                  <span className="text-gray-500 dark:text-[#9ca3af]">Completed</span>
                   <span className="font-semibold text-[#10b981]">2</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-[#9ca3af]">Available Slots</span>
+                  <span className="text-gray-500 dark:text-[#9ca3af]">Available Slots</span>
                   <span className="font-semibold">8</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-[#9ca3af]">Bot Managed</span>
+                  <span className="text-gray-500 dark:text-[#9ca3af]">Bot Managed</span>
                   <span className="font-semibold text-[#10b981]">100%</span>
                 </div>
               </div>
