@@ -366,10 +366,12 @@ export default function DashboardPage() {
                               style={{
                                 width: `${a.ai_match_score ?? 0}%`,
                                 background:
-                                  (a.ai_match_score ?? 0) >= 80
+                                  (a.ai_match_score ?? 0) >= 75
                                     ? '#10b981'
                                     : (a.ai_match_score ?? 0) >= 60
-                                    ? '#f59e0b'
+                                    ? '#eab308'
+                                    : (a.ai_match_score ?? 0) >= 40
+                                    ? '#FF6B35'
                                     : '#ef4444',
                               }}
                             />

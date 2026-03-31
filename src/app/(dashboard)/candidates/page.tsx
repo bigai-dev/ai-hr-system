@@ -194,7 +194,7 @@ export default function CandidatesPage() {
                               className="h-full rounded-full"
                               style={{
                                 width: `${a.ai_match_score}%`,
-                                backgroundColor: a.ai_match_score >= 90 ? '#ef4444' : a.ai_match_score >= 70 ? '#FF6B35' : '#10b981',
+                                backgroundColor: a.ai_match_score >= 75 ? '#10b981' : a.ai_match_score >= 60 ? '#eab308' : a.ai_match_score >= 40 ? '#FF6B35' : '#ef4444',
                               }}
                             />
                           </div>
