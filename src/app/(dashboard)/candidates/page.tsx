@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import TopBar from '@/components/TopBar';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { Applicant } from '@/lib/types';
 
 export default function CandidatesPage() {
@@ -20,10 +20,7 @@ export default function CandidatesPage() {
   }, []);
 
   async function fetchApplicants() {
-    const { data } = await supabase
-      .from('applicants')
-      .select('*')
-      .order('ai_match_score', { ascending: false, nullsFirst: false });
+    const data = await db.getApplicants();
     if (data) setApplicants(data);
   }
 
@@ -39,7 +36,7 @@ export default function CandidatesPage() {
   async function confirmSchedule() {
     if (!scheduleModal) return;
 
-    await supabase.from('interviews').insert({
+    await db.insertInterview({
       applicant_id: scheduleModal.id,
       scheduled_date: scheduleDate,
       scheduled_time: scheduleTime,
@@ -48,14 +45,14 @@ export default function CandidatesPage() {
       status: 'scheduled',
     });
 
-    await supabase.from('applicants').update({ status: 'scheduled' }).eq('id', scheduleModal.id);
+    await db.updateApplicantStatus(scheduleModal.id, 'scheduled');
 
     setScheduleModal(null);
     fetchApplicants();
   }
 
   async function handleDelete(applicantId: string) {
-    await supabase.from('applicants').delete().eq('id', applicantId);
+    await db.deleteApplicant(applicantId);
     fetchApplicants();
   }
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import TopBar from '@/components/TopBar';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { Applicant, Interview } from '@/lib/types';
 
 // ── Resume Text Formatter ──────────────────────────────────────────────────
@@ -281,17 +281,14 @@ export default function CandidateDetailPage() {
 
   async function fetchApplicant() {
     setLoading(true);
-    const { data } = await supabase.from('applicants').select('*').eq('id', id).single();
+    const data = await db.getApplicant(id);
     if (data) setApplicant(data);
     setLoading(false);
   }
 
   async function fetchAllIds() {
-    const { data } = await supabase
-      .from('applicants')
-      .select('id')
-      .order('created_at', { ascending: false });
-    if (data) setAllIds(data.map((d: any) => d.id));
+    const data = await db.getApplicantIds();
+    if (data) setAllIds(data);
   }
 
   function getInitials(name: string) {
@@ -313,7 +310,7 @@ export default function CandidateDetailPage() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const dateStr = tomorrow.toISOString().split('T')[0];
 
-    await supabase.from('interviews').insert({
+    await db.insertInterview({
       applicant_id: applicant.id,
       scheduled_date: dateStr,
       scheduled_time: '14:00',
@@ -322,7 +319,7 @@ export default function CandidateDetailPage() {
       status: 'scheduled',
     });
 
-    await supabase.from('applicants').update({ status: 'scheduled' }).eq('id', applicant.id);
+    await db.updateApplicantStatus(applicant.id, 'scheduled');
 
     setShowEmailPreview(false);
     setShowSuccess(true);
@@ -835,7 +832,7 @@ export default function CandidateDetailPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={async () => {
-              await supabase.from('applicants').update({ status: 'rejected' }).eq('id', applicant.id);
+              await db.updateApplicantStatus(applicant.id, 'rejected');
               router.push('/candidates');
             }}
             className="px-5 py-2.5 text-sm font-medium border border-danger text-danger rounded-lg hover:bg-danger/10 transition-colors"

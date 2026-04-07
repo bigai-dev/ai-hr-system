@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import TopBar from '@/components/TopBar';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import type { Interview } from '@/lib/types';
 
 const HOURS = [9, 10, 11, 12, 13, 14, 15, 16];
@@ -80,11 +80,8 @@ export default function SchedulingPage() {
   const popupRef = useRef<HTMLDivElement>(null);
 
   const fetchInterviews = useCallback(async () => {
-    const { data } = await supabase
-      .from('interviews')
-      .select('*, applicant:applicants(*)')
-      .order('scheduled_date', { ascending: true });
-    if (data) setInterviews(data);
+    const data = await db.getInterviews();
+    if (data) setInterviews(data as any);
   }, []);
 
   useEffect(() => {
@@ -155,20 +152,10 @@ export default function SchedulingPage() {
       setActionLoading(true);
       try {
         // Delete the interview
-        const { error: deleteError } = await supabase
-          .from('interviews')
-          .delete()
-          .eq('id', interview.id);
-        if (deleteError) {
-          console.error('Failed to delete interview:', deleteError);
-          return;
-        }
+        await db.deleteInterview(interview.id);
         // Reset applicant status back to screened
         if (interview.dbInterview?.applicant_id) {
-          await supabase
-            .from('applicants')
-            .update({ status: 'screened' })
-            .eq('id', interview.dbInterview.applicant_id);
+          await db.updateApplicantStatus(interview.dbInterview.applicant_id, 'screened');
         }
         // Refresh interviews and close popup
         await fetchInterviews();

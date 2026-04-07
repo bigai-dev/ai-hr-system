@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import TopBar from '@/components/TopBar';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { Applicant, Interview } from '@/lib/types';
 
 // ── Success Modal ────────────────────────────────────────────────────────────
@@ -79,23 +79,15 @@ export default function DashboardPage() {
   async function fetchData() {
     setLoading(true);
 
-    const [allRes, screenedRes, interviewRes] = await Promise.all([
-      supabase.from('applicants').select('*'),
-      supabase
-        .from('applicants')
-        .select('*')
-        .eq('status', 'screened')
-        .order('ai_match_score', { ascending: false }),
-      supabase
-        .from('interviews')
-        .select('*, applicant:applicants(*)')
-        .order('scheduled_date', { ascending: true })
-        .limit(5),
+    const [allData, screenedData, interviewData] = await Promise.all([
+      db.getApplicants(),
+      db.getScreenedApplicants(),
+      db.getInterviewsLimited(),
     ]);
 
-    if (allRes.data) setApplicants(allRes.data);
-    if (screenedRes.data) setScreenedApplicants(screenedRes.data);
-    if (interviewRes.data) setInterviews(interviewRes.data as any);
+    setApplicants(allData);
+    setScreenedApplicants(screenedData);
+    setInterviews(interviewData as any);
 
     setLoading(false);
   }
@@ -107,7 +99,7 @@ export default function DashboardPage() {
     const dateStr = tomorrow.toISOString().split('T')[0];
 
     // Create interview
-    await supabase.from('interviews').insert({
+    await db.insertInterview({
       applicant_id: applicant.id,
       scheduled_date: dateStr,
       scheduled_time: '14:00',
@@ -117,7 +109,7 @@ export default function DashboardPage() {
     });
 
     // Update applicant status
-    await supabase.from('applicants').update({ status: 'scheduled' }).eq('id', applicant.id);
+    await db.updateApplicantStatus(applicant.id, 'scheduled');
 
     setConfirmingId(null);
     setShowSuccess(true);

@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { JOB_DESCRIPTION } from '@/lib/job-description';
+import { turso } from '@/lib/turso';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-
     const { applicantId } = await request.json();
 
     if (!applicantId) {
@@ -20,25 +15,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch the applicant row
-    const { data: applicant, error: fetchError } = await supabase
-      .from('applicants')
-      .select('*')
-      .eq('id', applicantId)
-      .single();
+    const { rows } = await turso.execute({
+      sql: 'SELECT * FROM applicants WHERE id = ?',
+      args: [applicantId],
+    });
 
-    if (fetchError || !applicant) {
+    if (rows.length === 0) {
       return NextResponse.json(
         { error: 'Applicant not found' },
         { status: 404 }
       );
     }
 
+    const applicant = rows[0] as Record<string, unknown>;
+
     // Extract text from PDF resume if available
     let resumeText = '';
-    if (applicant.resume_url) {
+    if (applicant.resume_url as string) {
       try {
         const { extractText } = await import('unpdf');
-        const pdfResponse = await fetch(applicant.resume_url);
+        const pdfResponse = await fetch(applicant.resume_url as string);
         const pdfBuffer = new Uint8Array(await pdfResponse.arrayBuffer());
         const { text } = await extractText(pdfBuffer);
         resumeText = Array.isArray(text) ? text.join('\n') : String(text);
@@ -48,10 +44,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Update status to screening
-    await supabase
-      .from('applicants')
-      .update({ status: 'screening' })
-      .eq('id', applicantId);
+    await turso.execute({
+      sql: "UPDATE applicants SET status = 'screening', updated_at = datetime('now') WHERE id = ?",
+      args: [applicantId],
+    });
 
     // Call Claude API for AI screening
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -110,18 +106,25 @@ ${JOB_DESCRIPTION}`,
     }
 
     // Update the applicant row with AI results
-    const { error: updateError } = await supabase
-      .from('applicants')
-      .update({
-        ai_match_score: aiAnalysis.match_score,
-        ai_reasoning: aiAnalysis.reasoning,
-        ai_extracted_skills: aiAnalysis.extracted_skills,
-        resume_text: resumeText || null,
-        status: 'screened',
-      })
-      .eq('id', applicantId);
-
-    if (updateError) {
+    try {
+      await turso.execute({
+        sql: `UPDATE applicants SET
+          ai_match_score = ?,
+          ai_reasoning = ?,
+          ai_extracted_skills = ?,
+          resume_text = ?,
+          status = 'screened',
+          updated_at = datetime('now')
+          WHERE id = ?`,
+        args: [
+          aiAnalysis.match_score,
+          aiAnalysis.reasoning,
+          JSON.stringify(aiAnalysis.extracted_skills),
+          resumeText || null,
+          applicantId,
+        ],
+      });
+    } catch {
       return NextResponse.json(
         { error: 'Failed to update applicant with AI results' },
         { status: 500 }

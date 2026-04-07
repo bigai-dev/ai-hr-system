@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, FormEvent, ChangeEvent } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Applicant } from '@/lib/types';
+import { db } from '@/lib/db';
 
 export default function ApplyPage() {
   const [formData, setFormData] = useState({
@@ -41,47 +40,38 @@ export default function ApplyPage() {
     setError(null);
 
     try {
-      // 1. Upload resume PDF to Supabase Storage
+      // 1. Upload resume PDF via API route
       let resumeUrl: string | null = null;
 
       if (resumeFile) {
-        const fileExt = resumeFile.name.split('.').pop();
-        const fileName = `${Date.now()}-${formData.name.replace(/\s+/g, '_')}.${fileExt}`;
+        const uploadForm = new FormData();
+        uploadForm.append('file', resumeFile);
+        uploadForm.append('name', formData.name);
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('resumes')
-          .upload(fileName, resumeFile);
+        const uploadRes = await fetch('/api/upload-resume', {
+          method: 'POST',
+          body: uploadForm,
+        });
 
-        if (uploadError) {
-          throw new Error(`Resume upload failed: ${uploadError.message}`);
+        if (!uploadRes.ok) {
+          throw new Error('Resume upload failed');
         }
 
-        const { data: urlData } = supabase.storage
-          .from('resumes')
-          .getPublicUrl(uploadData.path);
-
-        resumeUrl = urlData.publicUrl;
+        const { url } = await uploadRes.json();
+        resumeUrl = url;
       }
 
       // 2. Insert row into applicants table
-      const { data: applicant, error: insertError } = await supabase
-        .from('applicants')
-        .insert({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          job_title: formData.job_title,
-          years_experience: parseInt(formData.years_experience) || 0,
-          cover_letter: formData.cover_letter,
-          resume_url: resumeUrl,
-          status: 'new',
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        throw new Error(`Failed to submit application: ${insertError.message}`);
-      }
+      const applicant = await db.insertApplicant({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        job_title: formData.job_title,
+        years_experience: parseInt(formData.years_experience) || 0,
+        cover_letter: formData.cover_letter,
+        resume_url: resumeUrl,
+        status: 'new',
+      });
 
       // 3. Call POST /api/screen with applicantId
       const screenResponse = await fetch('/api/screen', {

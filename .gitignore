@@ -36,6 +36,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# claude code settings (contains API tokens)
+.claude/settings.json
+
+# uploaded resumes
+/public/resumes/*
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
