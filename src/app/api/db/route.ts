@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { turso } from '@/lib/turso';
 
-// Generic DB proxy for client components to execute queries via fetch
-// This replaces the direct Supabase client calls from the browser
+// Generic DB proxy: client components call /api/db, this module talks to Turso.
 export async function POST(request: NextRequest) {
   try {
     const { action, params } = await request.json();

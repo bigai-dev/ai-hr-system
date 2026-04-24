@@ -34,20 +34,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const toggleTheme = () => setTheme(t => (t === 'dark' ? 'light' : 'dark'));
 
-  // Prevent flash - render dark by default on server
-  if (!mounted) {
-    return (
-      <ThemeContext.Provider value={{ theme: 'dark', toggleTheme }}>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `document.documentElement.classList.add('dark');`,
-          }}
-        />
-        {children}
-      </ThemeContext.Provider>
-    );
-  }
-
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
       {children}

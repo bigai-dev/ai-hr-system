@@ -142,7 +142,6 @@ export default function SchedulingPage() {
     []
   );
 
-  // Delete interview from Supabase
   const handleDelete = useCallback(
     async (interview: CalendarInterview) => {
       if (interview.isSample || !interview.id) {
