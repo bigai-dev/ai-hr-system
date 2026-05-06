@@ -6,9 +6,9 @@ import { screenApplicant } from '@/lib/screen';
 import { checkRateLimit, clientIp } from '@/lib/ratelimit';
 import { log } from '@/lib/log';
 
-const IP_LIMIT_MAX = 5;
+const IP_LIMIT_MAX = 30;
 const IP_LIMIT_WINDOW_SECONDS = 60 * 60; // 1 hour
-const EMAIL_LIMIT_MAX = 1;
+const EMAIL_LIMIT_MAX = 10;
 const EMAIL_LIMIT_WINDOW_SECONDS = 60 * 60 * 24; // 24 hours
 
 function rateLimitResponse(retryAfter: number) {
