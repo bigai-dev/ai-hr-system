@@ -2,7 +2,11 @@
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import TopBar from '@/components/TopBar';
-import { db } from '@/lib/db';
+import {
+  getInterviews,
+  deleteInterview,
+  updateApplicantStatus,
+} from '@/app/(dashboard)/actions';
 import type { Interview } from '@/lib/types';
 
 const HOURS = [9, 10, 11, 12, 13, 14, 15, 16];
@@ -19,21 +23,7 @@ interface CalendarInterview {
   dbInterview?: Interview; // full DB record for real interviews
 }
 
-const SAMPLE_INTERVIEWS: CalendarInterview[] = [
-  { name: 'Alex Rivera', type: 'Technical Screen', day: 1, hour: 10, duration: 60, isSample: true },
-  { name: 'Sarah Chen', type: 'HR Interview', day: 2, hour: 14, duration: 45, isSample: true },
-  { name: 'James Wilson', type: 'Portfolio Review', day: 3, hour: 11, duration: 30, isSample: true },
-  { name: 'Priya Patel', type: 'Technical Screen', day: 4, hour: 9, duration: 60, isSample: true },
-  { name: 'Marcus Lee', type: 'Final Round', day: 0, hour: 15, duration: 45, isSample: true },
-];
-
-const ACTIVITY_ITEMS = [
-  { name: 'Alex Rivera', action: 'invited', time: '2M AGO', color: 'text-[#FF6B35]' },
-  { name: 'Sarah Chen', action: 'confirmed', time: '1H AGO', color: 'text-[#10b981]' },
-  { name: 'James Wilson', action: 'rescheduled', time: '3H AGO', color: 'text-[#f59e0b]' },
-  { name: 'Priya Patel', action: 'completed', time: '5H AGO', color: 'text-[#10b981]' },
-  { name: 'Marcus Lee', action: 'invited', time: '1D AGO', color: 'text-[#FF6B35]' },
-];
+const SAMPLE_INTERVIEWS: CalendarInterview[] = [];
 
 function getWeekDates(today: Date) {
   const dayOfWeek = today.getDay();
@@ -80,8 +70,8 @@ export default function SchedulingPage() {
   const popupRef = useRef<HTMLDivElement>(null);
 
   const fetchInterviews = useCallback(async () => {
-    const data = await db.getInterviews();
-    if (data) setInterviews(data as any);
+    const data = await getInterviews();
+    if (data) setInterviews(data as Interview[]);
   }, []);
 
   useEffect(() => {
@@ -151,10 +141,10 @@ export default function SchedulingPage() {
       setActionLoading(true);
       try {
         // Delete the interview
-        await db.deleteInterview(interview.id);
+        await deleteInterview(interview.id);
         // Reset applicant status back to screened
         if (interview.dbInterview?.applicant_id) {
-          await db.updateApplicantStatus(interview.dbInterview.applicant_id, 'screened');
+          await updateApplicantStatus(interview.dbInterview.applicant_id, 'screened');
         }
         // Refresh interviews and close popup
         await fetchInterviews();
@@ -418,40 +408,13 @@ export default function SchedulingPage() {
               </div>
             </div>
 
-            {/* Recent Activity */}
-            <div className="bg-white dark:bg-[#242424] border border-gray-200 dark:border-[#333] rounded-xl p-4">
-              <h4 className="text-sm font-semibold mb-3">Recent Activity</h4>
-              <div className="space-y-3">
-                {ACTIVITY_ITEMS.map((item, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#FF6B35]/10 flex items-center justify-center text-[#FF6B35] text-xs font-bold flex-shrink-0 mt-0.5">
-                      {item.name.split(' ').map((n) => n[0]).join('')}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm">
-                        <span className="font-medium">{item.name}</span>{' '}
-                        <span className={item.color}>{item.action}</span>
-                      </div>
-                      <div className="text-[10px] text-gray-500 dark:text-[#9ca3af] uppercase tracking-wider mt-0.5">
-                        {item.time}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Stats */}
             <div className="bg-white dark:bg-[#242424] border border-gray-200 dark:border-[#333] rounded-xl p-4">
               <h4 className="text-sm font-semibold mb-3">This Week</h4>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500 dark:text-[#9ca3af]">Scheduled</span>
-                  <span className="font-semibold text-[#FF6B35]">5</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-[#9ca3af]">Completed</span>
-                  <span className="font-semibold text-[#10b981]">2</span>
+                  <span className="font-semibold text-[#FF6B35]">{calendarInterviews.length}</span>
                 </div>
               </div>
             </div>

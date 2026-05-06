@@ -4,8 +4,17 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import TopBar from '@/components/TopBar';
-import { db } from '@/lib/db';
-import { Applicant, Interview } from '@/lib/types';
+import {
+  getApplicant,
+  getApplicantIds,
+  insertInterview,
+  updateApplicantStatus,
+  getNotes,
+  addNote,
+  deleteNote,
+  type ApplicantNote,
+} from '@/app/(dashboard)/actions';
+import { Applicant } from '@/lib/types';
 
 // ── Resume Text Formatter ──────────────────────────────────────────────────
 function formatResumeText(text: string, candidateName: string, candidateEmail: string) {
@@ -118,136 +127,146 @@ function formatResumeText(text: string, candidateName: string, candidateEmail: s
   );
 }
 
-// ── Success Modal (reused) ──────────────────────────────────────────────────
-function SuccessModal({ onClose }: { onClose: () => void }) {
+// ── Timeline ────────────────────────────────────────────────────────────────
+function timeAgo(dateStr: string): string {
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  if (diffMs < 60_000) return 'Just now';
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+function Timeline({ applicant }: { applicant: Applicant }) {
+  const events: { label: string; detail: string; ts: string; color: string }[] = [
+    {
+      label: 'Application Received',
+      detail: 'Submitted via the public apply form.',
+      ts: applicant.created_at,
+      color: '#3b82f6',
+    },
+  ];
+  if (applicant.status === 'screening' || applicant.status === 'screened' || applicant.status === 'scheduled') {
+    events.push({
+      label: applicant.status === 'screening' ? 'AI Screening Started' : 'AI Screening Completed',
+      detail: applicant.ai_match_score != null
+        ? `Match score: ${applicant.ai_match_score}/100`
+        : 'Screening in progress.',
+      ts: applicant.updated_at,
+      color: '#10b981',
+    });
+  }
+  if (applicant.status === 'scheduled') {
+    events.push({
+      label: 'Interview Scheduled',
+      detail: 'Awaiting candidate confirmation.',
+      ts: applicant.updated_at,
+      color: '#FF6B35',
+    });
+  }
+  if (applicant.status === 'rejected') {
+    events.push({
+      label: 'Candidate Rejected',
+      detail: 'Marked as not a fit.',
+      ts: applicant.updated_at,
+      color: '#ef4444',
+    });
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-card border border-card-border rounded-2xl p-8 w-full max-w-md shadow-2xl text-center">
-        <div className="mx-auto w-16 h-16 rounded-full bg-[#10b981]/20 flex items-center justify-center mb-5">
-          <svg className="w-8 h-8 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h2 className="text-xl font-bold mb-2">Invitations Sent Successfully!</h2>
-        <p className="text-muted text-sm mb-6">The candidate has been scheduled and notified.</p>
-        <div className="space-y-3 mb-8">
-          <div className="flex items-center justify-between bg-background rounded-lg px-4 py-3">
-            <div className="flex items-center gap-3">
-              <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              <span className="text-sm font-medium">Email (Gmail)</span>
-            </div>
-            <span className="text-xs font-bold text-[#10b981] bg-[#10b981]/10 px-2.5 py-1 rounded-full">DELIVERED</span>
+    <div className="space-y-0">
+      {events.map((ev, i) => (
+        <div key={i} className="flex gap-4">
+          <div className="flex flex-col items-center">
+            <div
+              className="w-3.5 h-3.5 rounded-full shrink-0 mt-1 ring-4"
+              style={{ backgroundColor: ev.color, boxShadow: `0 0 0 4px ${ev.color}33` }}
+            />
+            {i < events.length - 1 && <div className="w-px flex-1 bg-card-border" />}
           </div>
-          <div className="flex items-center justify-between bg-background rounded-lg px-4 py-3">
-            <div className="flex items-center gap-3">
-              <svg className="w-5 h-5 text-muted" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-              </svg>
-              <span className="text-sm font-medium">WhatsApp Business</span>
-            </div>
-            <span className="text-xs font-bold text-[#10b981] bg-[#10b981]/10 px-2.5 py-1 rounded-full">DELIVERED</span>
+          <div className="pb-8">
+            <p className="text-sm font-semibold">{ev.label}</p>
+            <p className="text-xs text-muted mt-1">{ev.detail}</p>
+            <span className="text-[10px] text-muted-foreground mt-2 inline-block">
+              {timeAgo(ev.ts)}
+            </span>
           </div>
         </div>
-        <button onClick={onClose} className="w-full bg-[#FF6B35] hover:bg-[#e85a25] text-white font-semibold py-3 rounded-lg transition-colors">
-          Done
-        </button>
-      </div>
+      ))}
     </div>
   );
 }
 
-// ── Email Preview Modal ─────────────────────────────────────────────────────
-function EmailPreviewModal({
+// ── Schedule Confirm Modal ──────────────────────────────────────────────────
+function ScheduleConfirmModal({
   applicant,
-  onClose,
-  onSend,
+  date,
+  time,
+  type,
+  durationMinutes,
+  onCancel,
+  onConfirm,
 }: {
   applicant: Applicant;
-  onClose: () => void;
-  onSend: () => void;
+  date: string;
+  time: string;
+  type: string;
+  durationMinutes: number;
+  onCancel: () => void;
+  onConfirm: () => void;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-card border border-card-border rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden">
-        {/* Header */}
+      <div className="bg-card border border-card-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-card-border flex items-center justify-between">
-          <h2 className="text-base font-bold">Email Preview</h2>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-[#FF6B35] bg-[#FF6B35]/10 px-2.5 py-1 rounded-full">
-              AI Personalization Active
-            </span>
-            <button onClick={onClose} className="p-1 text-muted hover:text-foreground transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+          <h2 className="text-base font-bold">Confirm Interview</h2>
+          <button onClick={onCancel} className="p-1 text-muted hover:text-foreground transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-
-        {/* Email Metadata */}
-        <div className="px-6 py-4 space-y-2 border-b border-card-border bg-background/50">
-          <div className="flex gap-3 text-sm">
-            <span className="text-muted w-16 shrink-0">From:</span>
-            <span className="font-medium">HR Team &lt;hr@company.com&gt;</span>
+        <div className="px-6 py-5 space-y-4 text-sm">
+          <div>
+            <span className="text-muted">Candidate</span>
+            <div className="font-medium">{applicant.name}</div>
           </div>
-          <div className="flex gap-3 text-sm">
-            <span className="text-muted w-16 shrink-0">To:</span>
-            <span className="font-medium">{applicant.email}</span>
-          </div>
-          <div className="flex gap-3 text-sm">
-            <span className="text-muted w-16 shrink-0">Subject:</span>
-            <span className="font-medium">
-              Interview Invitation - {applicant.job_title} Position
-            </span>
-          </div>
-        </div>
-
-        {/* Email Body */}
-        <div className="px-6 py-6 max-h-72 overflow-y-auto">
-          <div className="text-sm leading-relaxed space-y-4 text-muted">
-            <p>Dear {applicant.name},</p>
-            <p>
-              Thank you for your interest in the <strong className="text-foreground">{applicant.job_title}</strong> position at our company. We were impressed by your background and experience, and we would like to invite you for a technical interview.
-            </p>
-            <p>
-              <strong className="text-foreground">Interview Details:</strong>
-            </p>
-            <div className="bg-background rounded-lg p-4 space-y-1">
-              <p>Date: Tomorrow</p>
-              <p>Time: 2:00 PM</p>
-              <p>Type: Technical Round</p>
-              <p>Duration: 60 minutes</p>
-              <p>Format: Video Call (link to follow)</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-muted">Date</span>
+              <div className="font-medium">{date}</div>
             </div>
-            <p>
-              Please confirm your availability by replying to this email. If the proposed time doesn&apos;t work, let us know and we&apos;ll find an alternative slot.
-            </p>
-            <p>We look forward to speaking with you!</p>
-            <p>
-              Best regards,
-              <br />
-              <strong className="text-foreground">HR Team</strong>
-              <br />
-              <span className="text-xs">Powered by Recruit.AI</span>
-            </p>
+            <div>
+              <span className="text-muted">Time</span>
+              <div className="font-medium">{time}</div>
+            </div>
+            <div>
+              <span className="text-muted">Type</span>
+              <div className="font-medium">{type}</div>
+            </div>
+            <div>
+              <span className="text-muted">Duration</span>
+              <div className="font-medium">{durationMinutes} min</div>
+            </div>
+          </div>
+          <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 px-3 py-2 text-xs text-muted">
+            Notifications are not configured. The candidate will not be emailed or messaged automatically.
           </div>
         </div>
-
-        {/* Actions */}
         <div className="px-6 py-4 border-t border-card-border flex items-center justify-end gap-3">
           <button
-            onClick={onClose}
+            onClick={onCancel}
             className="px-5 py-2.5 text-sm font-medium border border-card-border rounded-lg hover:bg-background transition-colors"
           >
-            Edit Template
+            Cancel
           </button>
           <button
-            onClick={onSend}
+            onClick={onConfirm}
             className="px-5 py-2.5 text-sm font-bold bg-[#FF6B35] hover:bg-[#e85a25] text-white rounded-lg transition-colors"
           >
-            Send Now
+            Confirm
           </button>
         </div>
       </div>
@@ -264,30 +283,44 @@ export default function CandidateDetailPage() {
   const [applicant, setApplicant] = useState<Applicant | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
-  const [notes, setNotes] = useState('');
-  const [showEmailPreview, setShowEmailPreview] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [notes, setNotes] = useState<ApplicantNote[]>([]);
+  const [savingNote, setSavingNote] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const [allIds, setAllIds] = useState<string[]>([]);
+
+  const proposedDate = (() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  })();
+  const proposedTime = '14:00';
+  const proposedType = 'Technical Round';
+  const proposedDuration = 60;
 
   const tabs = ['Application Preview', 'Resume & Portfolio', 'Timeline History', 'Internal Notes'];
 
   useEffect(() => {
     fetchApplicant();
     fetchAllIds();
-    // Load notes from localStorage
-    const saved = localStorage.getItem(`candidate_notes_${id}`);
-    if (saved) setNotes(saved);
+    fetchNotes();
   }, [id]);
+
+  async function fetchNotes() {
+    const data = await getNotes(id);
+    setNotes(data);
+  }
 
   async function fetchApplicant() {
     setLoading(true);
-    const data = await db.getApplicant(id);
+    const data = await getApplicant(id);
     if (data) setApplicant(data);
     setLoading(false);
   }
 
   async function fetchAllIds() {
-    const data = await db.getApplicantIds();
+    const data = await getApplicantIds();
     if (data) setAllIds(data);
   }
 
@@ -300,29 +333,36 @@ export default function CandidateDetailPage() {
       .slice(0, 2);
   }
 
-  function saveNotes() {
-    localStorage.setItem(`candidate_notes_${id}`, notes);
+  async function saveNote() {
+    if (!noteDraft.trim() || savingNote) return;
+    setSavingNote(true);
+    try {
+      await addNote(id, noteDraft);
+      setNoteDraft('');
+      await fetchNotes();
+    } finally {
+      setSavingNote(false);
+    }
+  }
+
+  async function removeNote(noteId: string) {
+    await deleteNote(noteId);
+    await fetchNotes();
   }
 
   async function handleSchedule() {
     if (!applicant) return;
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateStr = tomorrow.toISOString().split('T')[0];
-
-    await db.insertInterview({
+    await insertInterview({
       applicant_id: applicant.id,
-      scheduled_date: dateStr,
-      scheduled_time: '14:00',
-      duration_minutes: 60,
-      type: 'Technical Round',
-      status: 'scheduled',
+      scheduled_date: proposedDate,
+      scheduled_time: proposedTime,
+      duration_minutes: proposedDuration,
+      type: proposedType,
     });
-
-    await db.updateApplicantStatus(applicant.id, 'scheduled');
-
-    setShowEmailPreview(false);
-    setShowSuccess(true);
+    await updateApplicantStatus(applicant.id, 'scheduled');
+    setShowConfirm(false);
+    setToast(`Interview scheduled for ${proposedDate} at ${proposedTime}`);
+    setTimeout(() => setToast(null), 4000);
     fetchApplicant();
   }
 
@@ -351,14 +391,22 @@ export default function CandidateDetailPage() {
     <div className="flex-1 min-h-screen pb-20">
       <TopBar title="CANDIDATE PROFILE" />
 
-      {showEmailPreview && (
-        <EmailPreviewModal
+      {showConfirm && (
+        <ScheduleConfirmModal
           applicant={applicant}
-          onClose={() => setShowEmailPreview(false)}
-          onSend={handleSchedule}
+          date={proposedDate}
+          time={proposedTime}
+          type={proposedType}
+          durationMinutes={proposedDuration}
+          onCancel={() => setShowConfirm(false)}
+          onConfirm={handleSchedule}
         />
       )}
-      {showSuccess && <SuccessModal onClose={() => setShowSuccess(false)} />}
+      {toast && (
+        <div className="fixed top-6 right-6 z-50 bg-card border border-card-border rounded-lg shadow-lg px-5 py-3 text-sm">
+          {toast}
+        </div>
+      )}
 
       <div className="p-6 space-y-6">
         {/* ── Header Section ──────────────────────────────────────────── */}
@@ -519,19 +567,20 @@ export default function CandidateDetailPage() {
                     <h4 className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-3">
                       Extracted Core Skills
                     </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {(applicant.ai_extracted_skills && applicant.ai_extracted_skills.length > 0
-                        ? applicant.ai_extracted_skills
-                        : ['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'AWS']
-                      ).map((skill) => (
-                        <span
-                          key={skill}
-                          className="text-xs font-medium bg-[#FF6B35]/10 text-[#FF6B35] px-3 py-1.5 rounded-full"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
+                    {applicant.ai_extracted_skills && applicant.ai_extracted_skills.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {applicant.ai_extracted_skills.map((skill) => (
+                          <span
+                            key={skill}
+                            className="text-xs font-medium bg-[#FF6B35]/10 text-[#FF6B35] px-3 py-1.5 rounded-full"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted italic">Pending screening.</p>
+                    )}
                   </div>
 
                   {/* Match Reasoning */}
@@ -539,10 +588,13 @@ export default function CandidateDetailPage() {
                     <h4 className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-3">
                       Match Reasoning
                     </h4>
-                    <blockquote className="border-l-2 border-[#FF6B35] pl-4 text-sm text-muted italic leading-relaxed">
-                      {applicant.ai_reasoning ||
-                        'Candidate demonstrates strong technical alignment with the role requirements. Experience in relevant technology stack and industry exposure indicate high potential for culture fit and technical contribution.'}
-                    </blockquote>
+                    {applicant.ai_reasoning ? (
+                      <blockquote className="border-l-2 border-[#FF6B35] pl-4 text-sm text-muted italic leading-relaxed">
+                        {applicant.ai_reasoning}
+                      </blockquote>
+                    ) : (
+                      <p className="text-sm text-muted italic">Pending screening.</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -723,56 +775,7 @@ export default function CandidateDetailPage() {
           {/* Tab 2: Timeline History */}
           {activeTab === 2 && (
             <div className="bg-card border border-card-border rounded-xl p-6">
-              <div className="space-y-0">
-                {/* Application Received */}
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="w-3.5 h-3.5 rounded-full bg-blue-500 shrink-0 mt-1 ring-4 ring-blue-500/20" />
-                    <div className="w-px flex-1 bg-card-border" />
-                  </div>
-                  <div className="pb-8">
-                    <p className="text-sm font-semibold">Application Received</p>
-                    <p className="text-xs text-muted mt-1">
-                      Application submitted via online form with resume and cover letter.
-                    </p>
-                    <span className="text-[10px] text-muted-foreground mt-2 inline-block">2 days ago</span>
-                  </div>
-                </div>
-
-                {/* AI Screening Completed */}
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="w-3.5 h-3.5 rounded-full bg-[#10b981] shrink-0 mt-1 ring-4 ring-[#10b981]/20" />
-                    <div className="w-px flex-1 bg-card-border" />
-                  </div>
-                  <div className="pb-8">
-                    <div className="flex items-center gap-3">
-                      <p className="text-sm font-semibold">AI Screening Completed</p>
-                      <span className="text-[10px] font-bold bg-[#10b981]/10 text-[#10b981] px-2 py-0.5 rounded-full">
-                        Score: {score}%
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted mt-1">
-                      Automated AI assessment evaluated technical skills, experience alignment, and culture fit.
-                    </p>
-                    <span className="text-[10px] text-muted-foreground mt-2 inline-block">1 day ago</span>
-                  </div>
-                </div>
-
-                {/* Profile Viewed */}
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="w-3.5 h-3.5 rounded-full bg-[#FF6B35] shrink-0 mt-1 ring-4 ring-[#FF6B35]/20" />
-                  </div>
-                  <div className="pb-2">
-                    <p className="text-sm font-semibold">Candidate Profile Viewed</p>
-                    <p className="text-xs text-muted mt-1">
-                      HR team reviewed the candidate profile and AI screening results.
-                    </p>
-                    <span className="text-[10px] text-muted-foreground mt-2 inline-block">Today</span>
-                  </div>
-                </div>
-              </div>
+              <Timeline applicant={applicant} />
             </div>
           )}
 
@@ -781,19 +784,52 @@ export default function CandidateDetailPage() {
             <div className="bg-card border border-card-border rounded-xl p-6">
               <h3 className="text-sm font-bold mb-4">Internal Notes</h3>
               <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add internal notes about this candidate..."
-                className="w-full h-48 bg-background border border-card-border rounded-lg p-4 text-sm resize-none outline-none focus:border-[#FF6B35] transition-colors placeholder:text-muted-foreground"
+                value={noteDraft}
+                onChange={(e) => setNoteDraft(e.target.value)}
+                placeholder="Add a note about this candidate…"
+                className="w-full h-32 bg-background border border-card-border rounded-lg p-4 text-sm resize-none outline-none focus:border-[#FF6B35] transition-colors placeholder:text-muted-foreground"
+                maxLength={4000}
               />
-              <div className="flex justify-end mt-3">
+              <div className="flex justify-end mt-3 mb-6">
                 <button
-                  onClick={saveNotes}
-                  className="px-5 py-2.5 text-sm font-semibold bg-[#FF6B35] hover:bg-[#e85a25] text-white rounded-lg transition-colors"
+                  onClick={saveNote}
+                  disabled={savingNote || !noteDraft.trim()}
+                  className="px-5 py-2.5 text-sm font-semibold bg-[#FF6B35] hover:bg-[#e85a25] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
                 >
-                  Save Note
+                  {savingNote ? 'Saving…' : 'Add Note'}
                 </button>
               </div>
+
+              {notes.length === 0 ? (
+                <p className="text-sm text-muted text-center py-6">No notes yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {notes.map((n) => (
+                    <div
+                      key={n.id}
+                      className="rounded-lg border border-card-border bg-background p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed flex-1">
+                          {n.body}
+                        </p>
+                        <button
+                          onClick={() => removeNote(n.id)}
+                          className="text-xs text-muted hover:text-danger shrink-0"
+                          title="Delete note"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground mt-2 flex gap-2">
+                        <span>{n.created_by ?? 'unknown'}</span>
+                        <span>·</span>
+                        <span>{new Date(n.created_at).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -832,7 +868,7 @@ export default function CandidateDetailPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={async () => {
-              await db.updateApplicantStatus(applicant.id, 'rejected');
+              await updateApplicantStatus(applicant.id, 'rejected');
               router.push('/candidates');
             }}
             className="px-5 py-2.5 text-sm font-medium border border-danger text-danger rounded-lg hover:bg-danger/10 transition-colors"
@@ -840,7 +876,7 @@ export default function CandidateDetailPage() {
             Reject Candidate
           </button>
           <button
-            onClick={() => setShowEmailPreview(true)}
+            onClick={() => setShowConfirm(true)}
             className="px-5 py-2.5 text-sm font-bold bg-[#FF6B35] hover:bg-[#e85a25] text-white rounded-lg transition-colors"
           >
             Confirm &amp; Schedule Interview

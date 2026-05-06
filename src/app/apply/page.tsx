@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, FormEvent, ChangeEvent } from 'react';
-import { db } from '@/lib/db';
 
 export default function ApplyPage() {
   const [formData, setFormData] = useState({
@@ -22,11 +21,18 @@ export default function ApplyPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const MAX_RESUME_BYTES = 5 * 1024 * 1024;
+
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.type !== 'application/pdf') {
         setError('Please upload a PDF file.');
+        return;
+      }
+      if (file.size > MAX_RESUME_BYTES) {
+        const mb = (file.size / 1024 / 1024).toFixed(1);
+        setError(`Resume must be 5 MB or smaller. Yours is ${mb} MB.`);
         return;
       }
       setResumeFile(file);
@@ -40,51 +46,25 @@ export default function ApplyPage() {
     setError(null);
 
     try {
-      // 1. Upload resume PDF via API route
-      let resumeUrl: string | null = null;
+      const submission = new FormData();
+      submission.append('name', formData.name);
+      submission.append('email', formData.email);
+      submission.append('phone', formData.phone);
+      submission.append('job_title', formData.job_title);
+      submission.append('years_experience', formData.years_experience);
+      submission.append('cover_letter', formData.cover_letter);
+      if (resumeFile) submission.append('resume', resumeFile);
 
-      if (resumeFile) {
-        const uploadForm = new FormData();
-        uploadForm.append('file', resumeFile);
-        uploadForm.append('name', formData.name);
-
-        const uploadRes = await fetch('/api/upload-resume', {
-          method: 'POST',
-          body: uploadForm,
-        });
-
-        if (!uploadRes.ok) {
-          throw new Error('Resume upload failed');
-        }
-
-        const { url } = await uploadRes.json();
-        resumeUrl = url;
-      }
-
-      // 2. Insert row into applicants table
-      const applicant = await db.insertApplicant({
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        job_title: formData.job_title,
-        years_experience: parseInt(formData.years_experience) || 0,
-        cover_letter: formData.cover_letter,
-        resume_url: resumeUrl,
-        status: 'new',
-      });
-
-      // 3. Call POST /api/screen with applicantId
-      const screenResponse = await fetch('/api/screen', {
+      const res = await fetch('/api/applications', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ applicantId: applicant.id }),
+        body: submission,
       });
 
-      if (!screenResponse.ok) {
-        console.warn('AI screening request failed, but application was submitted.');
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Submission failed. Please try again.');
       }
 
-      // 4. Show success state
       setIsSubmitted(true);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
@@ -294,7 +274,11 @@ export default function ApplyPage() {
 
         {/* Footer */}
         <p className="text-center text-gray-500 text-xs mt-6">
-          By submitting, you agree to our privacy policy. Your data is processed securely.
+          By submitting, you agree to our{' '}
+          <a href="/privacy" className="text-[#FF6B35] hover:underline">
+            privacy policy
+          </a>
+          . You can request deletion of your data at any time.
         </p>
       </div>
     </div>

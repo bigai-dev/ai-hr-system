@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Build needs Turso to import successfully even if not used at build time.
+      TURSO_DATABASE_URL: file::memory:?cache=shared
+      TURSO_AUTH_TOKEN: ''
+      ANTHROPIC_API_KEY: 'test-key-not-used-at-build-time'
+      BASIC_AUTH_USER: ci
+      BASIC_AUTH_PASS: ci
+      BLOB_READ_WRITE_TOKEN: ''
+      CRON_SECRET: ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build

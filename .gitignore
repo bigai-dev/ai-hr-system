@@ -40,9 +40,6 @@ yarn-error.log*
 # claude code settings (may contain tokens or local prefs)
 .claude/
 
-# uploaded resumes (PII — never commit)
-/public/resumes/*
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -3,7 +3,12 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import TopBar from '@/components/TopBar';
-import { db } from '@/lib/db';
+import {
+  getApplicants,
+  insertInterview,
+  updateApplicantStatus,
+  deleteApplicant,
+} from '@/app/(dashboard)/actions';
 import { Applicant } from '@/lib/types';
 
 export default function CandidatesPage() {
@@ -20,7 +25,7 @@ export default function CandidatesPage() {
   }, []);
 
   async function fetchApplicants() {
-    const data = await db.getApplicants();
+    const data = await getApplicants();
     if (data) setApplicants(data);
   }
 
@@ -36,23 +41,22 @@ export default function CandidatesPage() {
   async function confirmSchedule() {
     if (!scheduleModal) return;
 
-    await db.insertInterview({
+    await insertInterview({
       applicant_id: scheduleModal.id,
       scheduled_date: scheduleDate,
       scheduled_time: scheduleTime,
       duration_minutes: 60,
       type: scheduleType,
-      status: 'scheduled',
     });
 
-    await db.updateApplicantStatus(scheduleModal.id, 'scheduled');
+    await updateApplicantStatus(scheduleModal.id, 'scheduled');
 
     setScheduleModal(null);
     fetchApplicants();
   }
 
   async function handleDelete(applicantId: string) {
-    await db.deleteApplicant(applicantId);
+    await deleteApplicant(applicantId);
     fetchApplicants();
   }
 
