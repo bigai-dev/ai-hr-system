@@ -19,28 +19,33 @@ function calcCostMicros(inputTokens: number, outputTokens: number): number {
   return Math.round(usd * 1_000_000);
 }
 
-const VERCEL_BLOB_HOST_SUFFIX = '.public.blob.vercel-storage.com';
+const VERCEL_BLOB_HOST_SUFFIX = '.private.blob.vercel-storage.com';
 
-function isOurBlobUrl(url: string): boolean {
+function pathnameFromOurBlobUrl(url: string): string | null {
   try {
     const u = new URL(url);
-    return u.protocol === 'https:' && u.hostname.endsWith(VERCEL_BLOB_HOST_SUFFIX);
+    if (u.protocol !== 'https:' || !u.hostname.endsWith(VERCEL_BLOB_HOST_SUFFIX)) {
+      return null;
+    }
+    return u.pathname.replace(/^\//, '');
   } catch {
-    return false;
+    return null;
   }
 }
 
 async function extractResumeText(resumeUrl: string | null): Promise<string> {
   if (!resumeUrl) return '';
-  if (!isOurBlobUrl(resumeUrl)) {
+  const pathname = pathnameFromOurBlobUrl(resumeUrl);
+  if (!pathname) {
     throw new Error('Refusing to fetch non-blob URL');
   }
+  const { get } = await import('@vercel/blob');
   const { extractText } = await import('unpdf');
-  const pdfResponse = await fetch(resumeUrl);
-  if (!pdfResponse.ok) {
-    throw new Error(`Failed to fetch resume blob: ${pdfResponse.status}`);
+  const result = await get(pathname, { access: 'private' });
+  if (!result || result.statusCode !== 200) {
+    throw new Error('Failed to fetch resume blob');
   }
-  const pdfBuffer = new Uint8Array(await pdfResponse.arrayBuffer());
+  const pdfBuffer = new Uint8Array(await new Response(result.stream).arrayBuffer());
   const { text } = await extractText(pdfBuffer);
   const joined = Array.isArray(text) ? text.join('\n') : String(text);
   return joined.length > MAX_RESUME_CHARS ? joined.slice(0, MAX_RESUME_CHARS) : joined;

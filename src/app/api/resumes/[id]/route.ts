@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server';
+import { get } from '@vercel/blob';
 import { turso } from '@/lib/turso';
 
-const VERCEL_BLOB_HOST_SUFFIX = '.public.blob.vercel-storage.com';
+const VERCEL_BLOB_HOST_SUFFIX = '.private.blob.vercel-storage.com';
 
-function isOurBlobUrl(url: string): boolean {
+function pathnameFromOurBlobUrl(url: string): string | null {
   try {
     const u = new URL(url);
-    return u.protocol === 'https:' && u.hostname.endsWith(VERCEL_BLOB_HOST_SUFFIX);
+    if (u.protocol !== 'https:' || !u.hostname.endsWith(VERCEL_BLOB_HOST_SUFFIX)) {
+      return null;
+    }
+    return u.pathname.replace(/^\//, '');
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -34,16 +38,23 @@ export async function GET(
     return new NextResponse('No resume on file', { status: 404 });
   }
 
-  if (!isOurBlobUrl(resumeUrl)) {
+  const pathname = pathnameFromOurBlobUrl(resumeUrl);
+  if (!pathname) {
     return new NextResponse('Resume URL is not a recognized blob', { status: 502 });
   }
 
-  const upstream = await fetch(resumeUrl);
-  if (!upstream.ok || !upstream.body) {
+  let stream: ReadableStream<Uint8Array>;
+  try {
+    const result = await get(pathname, { access: 'private' });
+    if (!result || result.statusCode !== 200) {
+      return new NextResponse('Failed to fetch resume', { status: 502 });
+    }
+    stream = result.stream;
+  } catch {
     return new NextResponse('Failed to fetch resume', { status: 502 });
   }
 
-  return new NextResponse(upstream.body, {
+  return new NextResponse(stream, {
     status: 200,
     headers: {
       'Content-Type': 'application/pdf',

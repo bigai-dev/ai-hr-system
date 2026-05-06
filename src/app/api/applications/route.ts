@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     const key = `resumes/${crypto.randomUUID()}.pdf`;
     try {
       const result = await put(key, buffer, {
-        access: 'public',
+        access: 'private',
         addRandomSuffix: true,
         contentType: 'application/pdf',
       });
