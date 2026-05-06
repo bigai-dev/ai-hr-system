@@ -1,6 +1,6 @@
 # RECRUIT.AI
 
-An AI-powered recruitment demo built with Next.js 16, Claude (Anthropic SDK), and Turso (SQLite-as-a-service). Candidates apply through a public form → Claude scores their resume against a job description → you manage the pipeline and schedule interviews from a dashboard.
+An AI-powered recruitment demo built with Next.js 16, DeepSeek (OpenAI-compatible API), and Turso (SQLite-as-a-service). Candidates apply through a public form → DeepSeek scores their resume against a job description → you manage the pipeline and schedule interviews from a dashboard.
 
 Built as a **vibe-coding workshop** starter: a small, readable codebase you can extend with natural-language prompts in Claude Code.
 
@@ -9,13 +9,13 @@ Built as a **vibe-coding workshop** starter: a small, readable codebase you can 
 ## What you get out of the box
 
 - **Public application page** (`/apply`) — form + PDF resume upload
-- **AI screening** — Claude reads the resume PDF and scores the candidate 0–100 with reasoning and extracted skills
+- **AI screening** — DeepSeek reads the resume PDF and scores the candidate 0–100 with reasoning and extracted skills
 - **Candidates dashboard** — search, filter, reject, schedule
 - **Scheduling** — calendar view of upcoming interviews
 - **Settings** — editable email / WhatsApp outreach templates
 - **Dark + light theme** toggle
 
-Stack: Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · Claude Sonnet 4.5 · Turso (libSQL) · `unpdf` for resume parsing.
+Stack: Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · DeepSeek V3 (`deepseek-chat`) · Turso (libSQL) · `unpdf` for resume parsing.
 
 ---
 
@@ -41,9 +41,9 @@ turso db show recruit-ai --url           # copy the libsql:// URL
 turso db tokens create recruit-ai        # copy the token
 ```
 
-### 3. Get an Anthropic API key
+### 3. Get a DeepSeek API key
 
-Sign up at <https://console.anthropic.com> → **API Keys** → **Create Key**. New accounts get free credit.
+Sign up at <https://platform.deepseek.com> → **API Keys** → **Create new API key**. Top up a few dollars — DeepSeek V3 is ~$0.27 / 1M input tokens and $1.10 / 1M output tokens, so it goes a long way.
 
 ### 4. Wire up your environment
 
@@ -56,7 +56,7 @@ Open `.env.local` and paste in your three values:
 ```
 TURSO_DATABASE_URL=libsql://recruit-ai-<you>.turso.io
 TURSO_AUTH_TOKEN=eyJ...
-ANTHROPIC_API_KEY=sk-ant-...
+DEEPSEEK_API_KEY=sk-...
 ```
 
 ### 5. Run it
@@ -68,7 +68,7 @@ npm run dev
 Open <http://localhost:3000>:
 
 - **`/apply`** — submit a test application (upload any PDF resume)
-- **`/dashboard`** — see the candidate scored by Claude
+- **`/dashboard`** — see the candidate scored by DeepSeek
 - **`/candidates`** — manage the pipeline
 - **`/scheduling`** — book interviews
 
@@ -103,7 +103,7 @@ schema.sql                      # run this once in Turso
 **Key files to read first:**
 
 1. [src/lib/job-description.ts](src/lib/job-description.ts) — change this to change what Claude scores against
-2. [src/app/api/screen/route.ts](src/app/api/screen/route.ts) — the Claude prompt lives here
+2. [src/lib/screen.ts](src/lib/screen.ts) — the DeepSeek prompt and screening logic live here
 3. [src/app/apply/page.tsx](src/app/apply/page.tsx) — the candidate-facing form
 4. [src/lib/types.ts](src/lib/types.ts) — data model
 
@@ -116,7 +116,7 @@ Open this project in [Claude Code](https://www.anthropic.com/claude-code) and tr
 **Tweak the AI:**
 > "Change the job description to a Junior Data Analyst role and update the fields on the apply page to match."
 
-> "In `src/app/api/screen/route.ts`, make Claude also return a `red_flags` array of concerns. Surface it on the candidate detail page."
+> "In `src/lib/screen.ts`, make the model also return a `red_flags` array of concerns. Surface it on the candidate detail page."
 
 **Add features:**
 > "Add a `rejection_reason` column to the applicants table (update `schema.sql` and the migrations). When I reject a candidate, ask me for a reason and store it."
@@ -139,7 +139,7 @@ Open this project in [Claude Code](https://www.anthropic.com/claude-code) and tr
 
 - **This is Next.js 16** (App Router, React 19, Tailwind v4). If Claude suggests patterns that look like older Next.js, push back: *"Use the Next.js 16 App Router conventions."*
 - **Keep edits small.** Ask for one feature at a time and run the dev server between prompts so you catch regressions early.
-- **The Claude model is set in [src/app/api/screen/route.ts](src/app/api/screen/route.ts)** — swap `claude-sonnet-4-5` for `claude-haiku-4-5` to save cost while experimenting, or `claude-opus-4-7` for the smartest scoring.
+- **The DeepSeek model is set in [src/lib/screen.ts](src/lib/screen.ts)** — swap `deepseek-chat` (V3, fast/cheap) for `deepseek-reasoner` (R1, chain-of-thought) if you want stronger reasoning at higher cost. Or change `baseURL` + model and supply a different API key to swap providers entirely.
 - **Uploaded resumes land in `public/resumes/`** which is gitignored. On Vercel the filesystem is ephemeral — if you deploy, switch to object storage (Vercel Blob, S3, Turso file storage, etc.). Ask Claude to help.
 
 ---
@@ -158,7 +158,7 @@ Open this project in [Claude Code](https://www.anthropic.com/claude-code) and tr
 | Symptom | Fix |
 |---|---|
 | `TURSO_DATABASE_URL` is undefined | You didn't copy `.env.example` → `.env.local`, or didn't restart `npm run dev` after editing it |
-| `401` from Anthropic | `ANTHROPIC_API_KEY` is wrong, expired, or out of credit |
+| `401` from DeepSeek | `DEEPSEEK_API_KEY` is wrong, expired, or out of credit |
 | PDF resume isn't being scored | Check the terminal — `unpdf` fails on some scanned/encrypted PDFs. Try a text-based PDF |
 | Candidate stuck on `screening` status | The `/api/screen` call failed; check the browser network tab and server logs |
 | Hydration warning about theme | Already handled — ignore unless the page actually flashes |
