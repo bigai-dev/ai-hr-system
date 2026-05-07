@@ -35,7 +35,10 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <script src="/theme-init.js" nonce={nonce} />
+        {/* Browsers clear the nonce attribute from the DOM after parsing for
+            security; React's hydration check sees that as a mismatch even
+            though the nonce did its job. Suppress the noise. */}
+        <script src="/theme-init.js" nonce={nonce} suppressHydrationWarning />
       </head>
       <body className="min-h-full flex flex-col">
         <ThemeProvider>{children}</ThemeProvider>
