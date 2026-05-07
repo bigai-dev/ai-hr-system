@@ -27,13 +27,13 @@ function SkillsField({
       <label htmlFor={id} className="block text-sm font-medium mb-1.5">
         {label}
       </label>
-      <input
+      <textarea
         id={id}
-        type="text"
+        rows={3}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+        className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-vertical"
       />
       <p className="text-xs text-muted mt-1">{hint}</p>
     </div>
