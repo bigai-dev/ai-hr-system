@@ -30,7 +30,7 @@ export default function JobsPage() {
   return (
     <div className="flex-1">
       <TopBar />
-      <div className="p-6 md:p-8 max-w-5xl">
+      <div className="p-6 md:p-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-semibold">Jobs</h1>
