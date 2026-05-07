@@ -1,19 +1,48 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import TopBar from '@/components/TopBar';
 import {
   getApplicants,
   insertInterview,
   updateApplicantStatus,
-  deleteApplicant,
+  archiveApplicant,
 } from '@/app/(dashboard)/actions';
-import { Applicant } from '@/lib/types';
+import { Applicant, ApplicantStatus, STAGE_LABELS } from '@/lib/types';
+import CandidateKanban from './CandidateKanban';
+
+const ADVANCING: ApplicantStatus[] = ['phone_screen', 'onsite', 'offer', 'hired'];
+const isAdvancing = (s: ApplicantStatus) => ADVANCING.includes(s);
 
 export default function CandidatesPage() {
+  return (
+    <div className="min-h-screen">
+      <TopBar title="Candidates" />
+      <Suspense
+        fallback={
+          <div className="p-6 flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
+        <CandidatesView />
+      </Suspense>
+    </div>
+  );
+}
+
+function CandidatesView() {
+  const searchParams = useSearchParams();
+  const view = searchParams.get('view');
+  if (view === 'list') return <CandidateListView />;
+  return <CandidateKanban />;
+}
+
+function CandidateListView() {
   const [applicants, setApplicants] = useState<Applicant[]>([]);
-  const [filter, setFilter] = useState<'all' | 'screening' | 'scheduled'>('all');
+  const [filter, setFilter] = useState<'all' | 'screened' | 'interviewing'>('all');
   const [search, setSearch] = useState('');
   const [scheduleModal, setScheduleModal] = useState<{id: string, name: string} | null>(null);
   const [scheduleDate, setScheduleDate] = useState('');
@@ -49,20 +78,20 @@ export default function CandidatesPage() {
       type: scheduleType,
     });
 
-    await updateApplicantStatus(scheduleModal.id, 'scheduled');
+    await updateApplicantStatus(scheduleModal.id, 'phone_screen');
 
     setScheduleModal(null);
     fetchApplicants();
   }
 
-  async function handleDelete(applicantId: string) {
-    await deleteApplicant(applicantId);
+  async function handleArchive(applicantId: string) {
+    await archiveApplicant(applicantId);
     fetchApplicants();
   }
 
   const filtered = applicants.filter((a) => {
-    if (filter === 'screening' && a.status !== 'screened') return false;
-    if (filter === 'scheduled' && a.status !== 'scheduled') return false;
+    if (filter === 'screened' && a.status !== 'screened') return false;
+    if (filter === 'interviewing' && a.status !== 'phone_screen' && a.status !== 'onsite') return false;
     if (search && !a.name.toLowerCase().includes(search.toLowerCase()) && !a.job_title?.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
@@ -70,16 +99,28 @@ export default function CandidatesPage() {
   const topMatches = applicants.filter(a => a.ai_match_score).slice(0, 3);
 
   return (
-    <div className="min-h-screen">
-      <TopBar title="Candidates" />
+    <>
       <div className="p-6">
+        {/* View toggle */}
+        <div className="mb-4 flex items-center gap-1 bg-card border border-card-border rounded-lg p-0.5 w-fit">
+          <Link
+            href="/candidates"
+            className="px-3 py-1 text-xs font-semibold rounded-md text-muted hover:text-foreground transition-colors"
+          >
+            Board
+          </Link>
+          <button className="px-3 py-1 text-xs font-semibold rounded-md bg-accent text-white">
+            List
+          </button>
+        </div>
+
         {/* Top AI Matches */}
         {topMatches.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-xl font-bold flex items-center gap-2">
-                  <span className="text-[#FF6B35]">&#10024;</span> Top AI Matches
+                  <span className="text-accent">&#10024;</span> Top AI Matches
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-[#9ca3af]">Highest compatibility based on current requirements</p>
               </div>
@@ -92,23 +133,23 @@ export default function CandidatesPage() {
               {topMatches.map((a) => (
                 <div key={a.id} className="bg-white dark:bg-[#242424] border border-gray-200 dark:border-[#333] rounded-xl p-5">
                   <div className="flex items-start justify-between mb-3">
-                    <div className="w-12 h-12 rounded-full bg-[#FF6B35]/20 flex items-center justify-center text-[#FF6B35] font-bold">
+                    <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold">
                       {a.name.split(' ').map(n => n[0]).join('')}
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-[#FF6B35]">{a.ai_match_score}%</div>
+                      <div className="text-2xl font-bold text-accent">{a.ai_match_score}%</div>
                       <div className="text-xs text-gray-500 dark:text-[#9ca3af] uppercase">Match</div>
                     </div>
                   </div>
                   <h3 className="font-semibold">{a.name}</h3>
                   <p className="text-sm text-gray-500 dark:text-[#9ca3af]">{a.job_title}</p>
                   <div className="flex items-center justify-between mt-4">
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      a.status === 'scheduled' ? 'bg-[#10b981]/20 text-[#10b981]' : 'bg-[#FF6B35]/20 text-[#FF6B35]'
+                    <span className={`text-xs px-2 py-1 rounded-full uppercase tracking-wider ${
+                      isAdvancing(a.status) ? 'bg-success/20 text-success' : 'bg-accent/20 text-accent'
                     }`}>
-                      {a.status.toUpperCase()}
+                      {STAGE_LABELS[a.status]}
                     </span>
-                    <Link href={`/candidates/${a.id}`} className="text-sm text-[#FF6B35] hover:underline">
+                    <Link href={`/candidates/${a.id}`} className="text-sm text-accent hover:underline">
                       View Profile &rarr;
                     </Link>
                   </div>
@@ -140,12 +181,12 @@ export default function CandidatesPage() {
           {/* Filter tabs */}
           <div className="flex items-center gap-4 mb-4">
             <div className="flex gap-1 bg-gray-100 dark:bg-[#242424] rounded-lg p-1">
-              {(['all', 'screening', 'scheduled'] as const).map((f) => (
+              {(['all', 'screened', 'interviewing'] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
                   className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                    filter === f ? 'bg-[#FF6B35] text-white' : 'text-gray-500 dark:text-[#9ca3af] hover:text-gray-900 dark:hover:text-white'
+                    filter === f ? 'bg-accent text-white' : 'text-gray-500 dark:text-[#9ca3af] hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
                   {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -178,11 +219,11 @@ export default function CandidatesPage() {
                   <tr key={a.id} className="border-b border-gray-200 dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#2a2a2a] transition-colors">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-[#FF6B35]/20 flex items-center justify-center text-[#FF6B35] text-sm font-bold">
+                        <div className="w-9 h-9 rounded-full bg-accent/20 flex items-center justify-center text-accent text-sm font-bold">
                           {a.name.split(' ').map(n => n[0]).join('')}
                         </div>
                         <div>
-                          <Link href={`/candidates/${a.id}`} className="font-medium hover:text-[#FF6B35]">{a.name}</Link>
+                          <Link href={`/candidates/${a.id}`} className="font-medium hover:text-accent">{a.name}</Link>
                           <div className="text-xs text-gray-500 dark:text-[#9ca3af]">{a.job_title}</div>
                         </div>
                       </div>
@@ -210,12 +251,13 @@ export default function CandidatesPage() {
                     </td>
                     <td className="px-5 py-4">
                       <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                        a.status === 'scheduled' ? 'bg-[#10b981]/20 text-[#10b981]' :
-                        a.status === 'screened' ? 'bg-[#FF6B35]/20 text-[#FF6B35]' :
+                        isAdvancing(a.status) ? 'bg-success/20 text-success' :
+                        a.status === 'screened' ? 'bg-accent/20 text-accent' :
                         a.status === 'screening' ? 'bg-yellow-500/20 text-yellow-400' :
+                        a.status === 'rejected' || a.status === 'archived' || a.status === 'withdrawn' ? 'bg-red-500/15 text-red-500' :
                         'bg-gray-200 dark:bg-[#333] text-gray-500 dark:text-[#9ca3af]'
                       }`}>
-                        {a.status.charAt(0).toUpperCase() + a.status.slice(1)}
+                        {STAGE_LABELS[a.status]}
                       </span>
                     </td>
                     <td className="px-5 py-4">
@@ -226,8 +268,8 @@ export default function CandidatesPage() {
                         <button onClick={() => openScheduleModal(a.id, a.name)} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#333] text-gray-500 dark:text-[#9ca3af] hover:text-gray-900 dark:hover:text-white" title="Schedule">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                         </button>
-                        <button onClick={() => handleDelete(a.id)} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#333] text-gray-500 dark:text-[#9ca3af] hover:text-red-400" title="Remove">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        <button onClick={() => handleArchive(a.id)} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#333] text-gray-500 dark:text-[#9ca3af] hover:text-amber-500" title="Archive">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
                         </button>
                       </div>
                     </td>
@@ -273,7 +315,7 @@ export default function CandidatesPage() {
                   type="date"
                   value={scheduleDate}
                   onChange={(e) => setScheduleDate(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none text-gray-900 dark:text-white focus:border-[#FF6B35] transition-colors"
+                  className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none text-gray-900 dark:text-white focus:border-accent transition-colors"
                 />
               </div>
 
@@ -283,7 +325,7 @@ export default function CandidatesPage() {
                 <select
                   value={scheduleTime}
                   onChange={(e) => setScheduleTime(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none text-gray-900 dark:text-white focus:border-[#FF6B35] transition-colors"
+                  className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none text-gray-900 dark:text-white focus:border-accent transition-colors"
                 >
                   <option value="09:00">9:00 AM</option>
                   <option value="10:00">10:00 AM</option>
@@ -302,7 +344,7 @@ export default function CandidatesPage() {
                 <select
                   value={scheduleType}
                   onChange={(e) => setScheduleType(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none text-gray-900 dark:text-white focus:border-[#FF6B35] transition-colors"
+                  className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none text-gray-900 dark:text-white focus:border-accent transition-colors"
                 >
                   <option value="Technical Screen">Technical Screen</option>
                   <option value="HR Interview">HR Interview</option>
@@ -322,7 +364,7 @@ export default function CandidatesPage() {
               </button>
               <button
                 onClick={confirmSchedule}
-                className="px-5 py-2.5 text-sm font-bold bg-[#FF6B35] hover:bg-[#e85a25] text-white rounded-lg transition-colors"
+                className="px-5 py-2.5 text-sm font-bold bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
               >
                 Schedule Interview
               </button>
@@ -330,6 +372,6 @@ export default function CandidatesPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

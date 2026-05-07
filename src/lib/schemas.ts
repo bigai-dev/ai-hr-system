@@ -22,6 +22,10 @@ export const JobInputSchema = z.object({
   min_years_experience: z.coerce.number().int().min(0).max(60).default(0),
   additional_notes: z.string().trim().max(4_000).optional().default(''),
   status: z.enum(['active', 'archived']).default('active'),
+  hiring_manager_email: z
+    .union([z.string().trim().email().max(254), z.literal('')])
+    .optional()
+    .default(''),
 });
 
 export type JobInput = z.infer<typeof JobInputSchema>;
@@ -38,8 +42,13 @@ export const ApplicantStatusSchema = z.enum([
   'new',
   'screening',
   'screened',
-  'scheduled',
+  'phone_screen',
+  'onsite',
+  'offer',
+  'hired',
   'rejected',
+  'archived',
+  'withdrawn',
 ]);
 
 export const MAX_RESUME_BYTES = 5 * 1024 * 1024; // 5 MB

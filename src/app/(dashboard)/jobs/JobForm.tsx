@@ -52,8 +52,12 @@ export default function JobForm({ mode }: { mode: Mode }) {
   const [minYears, setMinYears] = useState(String(initial?.min_years_experience ?? 0));
   const [additionalNotes, setAdditionalNotes] = useState(initial?.additional_notes ?? '');
   const [status, setStatus] = useState<'active' | 'archived'>(initial?.status ?? 'active');
+  const [hiringManagerEmail, setHiringManagerEmail] = useState(
+    initial?.hiring_manager_email ?? '',
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedTick, setSavedTick] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -69,12 +73,15 @@ export default function JobForm({ mode }: { mode: Mode }) {
         min_years_experience: Number(minYears) || 0,
         additional_notes: additionalNotes,
         status,
+        hiring_manager_email: hiringManagerEmail.trim(),
       };
       if (mode.kind === 'create') {
         const { id } = await createJob(input);
         router.push(`/jobs/${id}`);
       } else {
         await updateJob(mode.job.id, input);
+        setSavedTick(true);
+        setTimeout(() => setSavedTick(false), 2000);
         router.refresh();
       }
     } catch (err) {
@@ -189,6 +196,24 @@ export default function JobForm({ mode }: { mode: Mode }) {
       </div>
 
       <div>
+        <label htmlFor="hiring_manager_email" className="block text-sm font-medium mb-1.5">
+          Hiring Manager Email <span className="text-muted text-xs">(optional)</span>
+        </label>
+        <input
+          type="email"
+          id="hiring_manager_email"
+          maxLength={254}
+          value={hiringManagerEmail}
+          onChange={(e) => setHiringManagerEmail(e.target.value)}
+          placeholder="manager@company.com"
+          className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+        />
+        <p className="text-xs text-muted mt-1">
+          Receives the weekly digest (Mon 8am UTC) summarizing new applicants, interviews, and aging candidates for this role.
+        </p>
+      </div>
+
+      <div>
         <label htmlFor="additional_notes" className="block text-sm font-medium mb-1.5">
           Additional Notes <span className="text-muted text-xs">(optional)</span>
         </label>
@@ -203,7 +228,7 @@ export default function JobForm({ mode }: { mode: Mode }) {
         />
       </div>
 
-      <div className="flex gap-3 pt-2">
+      <div className="flex items-center gap-3 pt-2">
         <button
           type="submit"
           disabled={submitting}
@@ -218,6 +243,9 @@ export default function JobForm({ mode }: { mode: Mode }) {
         >
           Cancel
         </button>
+        {savedTick && (
+          <span className="text-xs font-semibold text-success">✓ Saved</span>
+        )}
       </div>
     </form>
   );

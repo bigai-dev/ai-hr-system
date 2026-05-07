@@ -9,12 +9,22 @@ import {
   getApplicantIds,
   insertInterview,
   updateApplicantStatus,
+  rejectApplicantWithReason,
   getNotes,
   addNote,
   deleteNote,
+  getJob,
   type ApplicantNote,
 } from '@/app/(dashboard)/actions';
-import { Applicant } from '@/lib/types';
+import RejectReasonModal from '@/components/RejectReasonModal';
+import type { RejectionReason } from '@/lib/email-templates-shared';
+import { Applicant, Job } from '@/lib/types';
+import Scorecards from './Scorecards';
+import BookingLinkModal from './BookingLinkModal';
+import ScheduleInterviewModal, {
+  buildScheduleDefaults,
+  type ScheduleValues,
+} from '@/components/ScheduleInterviewModal';
 
 // ── Resume Text Formatter ──────────────────────────────────────────────────
 function formatResumeText(text: string, candidateName: string, candidateEmail: string) {
@@ -108,7 +118,7 @@ function formatResumeText(text: string, candidateName: string, candidateEmail: s
             <hr className="border-gray-200 my-4" />
           )}
           {section.heading && (
-            <h3 className="text-xs font-bold text-[#FF6B35] uppercase tracking-wider mb-3 mt-1">
+            <h3 className="text-xs font-bold text-accent uppercase tracking-wider mb-3 mt-1">
               {section.heading}
             </h3>
           )}
@@ -148,7 +158,8 @@ function Timeline({ applicant }: { applicant: Applicant }) {
       color: '#3b82f6',
     },
   ];
-  if (applicant.status === 'screening' || applicant.status === 'screened' || applicant.status === 'scheduled') {
+  const aiSeen = ['screening', 'screened', 'phone_screen', 'onsite', 'offer', 'hired'];
+  if (aiSeen.includes(applicant.status)) {
     events.push({
       label: applicant.status === 'screening' ? 'AI Screening Started' : 'AI Screening Completed',
       detail: applicant.ai_match_score != null
@@ -158,20 +169,52 @@ function Timeline({ applicant }: { applicant: Applicant }) {
       color: '#10b981',
     });
   }
-  if (applicant.status === 'scheduled') {
+  if (applicant.status === 'phone_screen' || applicant.status === 'onsite') {
     events.push({
-      label: 'Interview Scheduled',
-      detail: 'Awaiting candidate confirmation.',
-      ts: applicant.updated_at,
+      label: applicant.status === 'phone_screen' ? 'Phone Screen Stage' : 'Onsite Stage',
+      detail: 'Interview in progress.',
+      ts: applicant.stage_changed_at,
       color: '#FF6B35',
+    });
+  }
+  if (applicant.status === 'offer') {
+    events.push({
+      label: 'Offer Extended',
+      detail: 'Awaiting candidate response.',
+      ts: applicant.stage_changed_at,
+      color: '#FF6B35',
+    });
+  }
+  if (applicant.status === 'hired') {
+    events.push({
+      label: 'Candidate Hired',
+      detail: 'Offer accepted.',
+      ts: applicant.stage_changed_at,
+      color: '#10b981',
     });
   }
   if (applicant.status === 'rejected') {
     events.push({
       label: 'Candidate Rejected',
       detail: 'Marked as not a fit.',
-      ts: applicant.updated_at,
+      ts: applicant.stage_changed_at,
       color: '#ef4444',
+    });
+  }
+  if (applicant.status === 'archived') {
+    events.push({
+      label: 'Candidate Archived',
+      detail: 'Removed from active pipeline.',
+      ts: applicant.stage_changed_at,
+      color: '#6b7280',
+    });
+  }
+  if (applicant.status === 'withdrawn') {
+    events.push({
+      label: 'Candidate Withdrew',
+      detail: 'Pulled out of the process.',
+      ts: applicant.stage_changed_at,
+      color: '#6b7280',
     });
   }
 
@@ -199,81 +242,6 @@ function Timeline({ applicant }: { applicant: Applicant }) {
   );
 }
 
-// ── Schedule Confirm Modal ──────────────────────────────────────────────────
-function ScheduleConfirmModal({
-  applicant,
-  date,
-  time,
-  type,
-  durationMinutes,
-  onCancel,
-  onConfirm,
-}: {
-  applicant: Applicant;
-  date: string;
-  time: string;
-  type: string;
-  durationMinutes: number;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-card border border-card-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-card-border flex items-center justify-between">
-          <h2 className="text-base font-bold">Confirm Interview</h2>
-          <button onClick={onCancel} className="p-1 text-muted hover:text-foreground transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div className="px-6 py-5 space-y-4 text-sm">
-          <div>
-            <span className="text-muted">Candidate</span>
-            <div className="font-medium">{applicant.name}</div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <span className="text-muted">Date</span>
-              <div className="font-medium">{date}</div>
-            </div>
-            <div>
-              <span className="text-muted">Time</span>
-              <div className="font-medium">{time}</div>
-            </div>
-            <div>
-              <span className="text-muted">Type</span>
-              <div className="font-medium">{type}</div>
-            </div>
-            <div>
-              <span className="text-muted">Duration</span>
-              <div className="font-medium">{durationMinutes} min</div>
-            </div>
-          </div>
-          <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 px-3 py-2 text-xs text-muted">
-            Notifications are not configured. The candidate will not be emailed or messaged automatically.
-          </div>
-        </div>
-        <div className="px-6 py-4 border-t border-card-border flex items-center justify-end gap-3">
-          <button
-            onClick={onCancel}
-            className="px-5 py-2.5 text-sm font-medium border border-card-border rounded-lg hover:bg-background transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className="px-5 py-2.5 text-sm font-bold bg-[#FF6B35] hover:bg-[#e85a25] text-white rounded-lg transition-colors"
-          >
-            Confirm
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Candidate Detail Page ───────────────────────────────────────────────────
 export default function CandidateDetailPage() {
   const params = useParams();
@@ -281,25 +249,27 @@ export default function CandidateDetailPage() {
   const id = params.id as string;
 
   const [applicant, setApplicant] = useState<Applicant | null>(null);
+  const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
   const [noteDraft, setNoteDraft] = useState('');
   const [notes, setNotes] = useState<ApplicantNote[]>([]);
   const [savingNote, setSavingNote] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showBookingLink, setShowBookingLink] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [allIds, setAllIds] = useState<string[]>([]);
 
-  const proposedDate = (() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
-  })();
-  const proposedTime = '14:00';
-  const proposedType = 'Technical Round';
-  const proposedDuration = 60;
+  const scheduleDefaults: ScheduleValues = buildScheduleDefaults();
 
-  const tabs = ['Application Preview', 'Resume & Portfolio', 'Timeline History', 'Internal Notes'];
+  const tabs = [
+    'Application Preview',
+    'Resume & Portfolio',
+    'Scorecards',
+    'Timeline History',
+    'Internal Notes',
+  ];
 
   useEffect(() => {
     fetchApplicant();
@@ -315,7 +285,13 @@ export default function CandidateDetailPage() {
   async function fetchApplicant() {
     setLoading(true);
     const data = await getApplicant(id);
-    if (data) setApplicant(data);
+    if (data) {
+      setApplicant(data);
+      if (data.job_id) {
+        const j = await getJob(data.job_id);
+        setJob(j);
+      }
+    }
     setLoading(false);
   }
 
@@ -350,18 +326,23 @@ export default function CandidateDetailPage() {
     await fetchNotes();
   }
 
-  async function handleSchedule() {
+  async function handleSchedule(values: ScheduleValues) {
     if (!applicant) return;
-    await insertInterview({
+    const result = await insertInterview({
       applicant_id: applicant.id,
-      scheduled_date: proposedDate,
-      scheduled_time: proposedTime,
-      duration_minutes: proposedDuration,
-      type: proposedType,
+      scheduled_date: values.date,
+      scheduled_time: values.time,
+      duration_minutes: values.durationMinutes,
+      type: values.type,
     });
-    await updateApplicantStatus(applicant.id, 'scheduled');
+    // Only advance the candidate if they're still pre-interview. If they're
+    // already further along, scheduling another round shouldn't pull them back.
+    if (['new', 'screening', 'screened'].includes(applicant.status)) {
+      await updateApplicantStatus(applicant.id, 'phone_screen');
+    }
     setShowConfirm(false);
-    setToast(`Interview scheduled for ${proposedDate} at ${proposedTime}`);
+    const emailNote = result.email_sent ? ' · candidate emailed' : '';
+    setToast(`Interview scheduled for ${values.date} at ${values.time}${emailNote}`);
     setTimeout(() => setToast(null), 4000);
     fetchApplicant();
   }
@@ -377,7 +358,7 @@ export default function CandidateDetailPage() {
         <TopBar title="CANDIDATE PROFILE" />
         <div className="p-6 flex items-center justify-center h-[calc(100vh-3.5rem)]">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-[#FF6B35] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
             <span className="text-muted text-sm">Loading candidate...</span>
           </div>
         </div>
@@ -392,12 +373,9 @@ export default function CandidateDetailPage() {
       <TopBar title="CANDIDATE PROFILE" />
 
       {showConfirm && (
-        <ScheduleConfirmModal
+        <ScheduleInterviewModal
           applicant={applicant}
-          date={proposedDate}
-          time={proposedTime}
-          type={proposedType}
-          durationMinutes={proposedDuration}
+          defaults={scheduleDefaults}
           onCancel={() => setShowConfirm(false)}
           onConfirm={handleSchedule}
         />
@@ -413,13 +391,13 @@ export default function CandidateDetailPage() {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left: Avatar + Info */}
           <div className="flex-1 flex items-start gap-5">
-            <div className="w-20 h-20 rounded-2xl bg-[#FF6B35]/20 flex items-center justify-center text-[#FF6B35] text-2xl font-bold shrink-0">
+            <div className="w-20 h-20 rounded-2xl bg-accent/20 flex items-center justify-center text-accent text-2xl font-bold shrink-0">
               {getInitials(applicant.name)}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-1">
                 <h1 className="text-2xl font-bold">{applicant.name}</h1>
-                <span className="text-[10px] font-bold text-[#10b981] bg-[#10b981]/10 px-2.5 py-1 rounded-full uppercase">
+                <span className="text-[10px] font-bold text-success bg-success/10 px-2.5 py-1 rounded-full uppercase">
                   {applicant.status === 'rejected' ? 'Rejected' : 'Active'}
                 </span>
               </div>
@@ -437,20 +415,16 @@ export default function CandidateDetailPage() {
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
-                  {applicant.phone || '+1 (555) 000-0000'}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
-                  </svg>
-                  LinkedIn Profile
+                  {applicant.phone || (
+                    <span className="italic text-muted">No phone provided</span>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
           {/* Right: AI Match Score */}
-          <div className="bg-card border border-card-border rounded-xl p-6 flex items-center gap-5 lg:min-w-[260px]">
+          <div className="bg-card border border-card-border rounded-xl p-6 flex items-center gap-5 lg:min-w-65">
             <div className="relative w-20 h-20 shrink-0">
               <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
                 <circle cx="40" cy="40" r="34" fill="none" stroke="currentColor" className="text-background" strokeWidth="6" />
@@ -489,7 +463,7 @@ export default function CandidateDetailPage() {
               onClick={() => setActiveTab(i)}
               className={`px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 activeTab === i
-                  ? 'border-[#FF6B35] text-[#FF6B35]'
+                  ? 'border-accent text-accent'
                   : 'border-transparent text-muted hover:text-foreground'
               }`}
             >
@@ -499,7 +473,7 @@ export default function CandidateDetailPage() {
         </div>
 
         {/* ── Tab Content ─────────────────────────────────────────────── */}
-        <div className="min-h-[400px]">
+        <div className="min-h-100">
           {/* Tab 0: Application Preview */}
           {activeTab === 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -521,7 +495,7 @@ export default function CandidateDetailPage() {
                 <div className="p-6">
                   <div className="bg-background rounded-lg p-5 space-y-3">
                     <div className="flex items-center gap-3 mb-4">
-                      <div className="w-8 h-8 rounded-full bg-[#FF6B35]/20 flex items-center justify-center text-[#FF6B35] text-xs font-bold">
+                      <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold">
                         {getInitials(applicant.name)}
                       </div>
                       <div>
@@ -572,7 +546,7 @@ export default function CandidateDetailPage() {
                         {applicant.ai_extracted_skills.map((skill) => (
                           <span
                             key={skill}
-                            className="text-xs font-medium bg-[#FF6B35]/10 text-[#FF6B35] px-3 py-1.5 rounded-full"
+                            className="text-xs font-medium bg-accent/10 text-accent px-3 py-1.5 rounded-full"
                           >
                             {skill}
                           </span>
@@ -589,7 +563,7 @@ export default function CandidateDetailPage() {
                       Match Reasoning
                     </h4>
                     {applicant.ai_reasoning ? (
-                      <blockquote className="border-l-2 border-[#FF6B35] pl-4 text-sm text-muted italic leading-relaxed">
+                      <blockquote className="border-l-2 border-accent pl-4 text-sm text-muted italic leading-relaxed">
                         {applicant.ai_reasoning}
                       </blockquote>
                     ) : (
@@ -611,7 +585,7 @@ export default function CandidateDetailPage() {
                   <span className="text-[10px] text-muted bg-background px-2.5 py-1 rounded-full">PDF</span>
                 </div>
                 <div className="p-6">
-                  <div className="bg-white text-gray-900 rounded-lg p-8 shadow-inner min-h-[500px] max-h-[600px] overflow-y-auto">
+                  <div className="bg-white text-gray-900 rounded-lg p-8 shadow-inner min-h-125 max-h-150 overflow-y-auto">
                     {/* Header */}
                     <div className="border-b-2 border-gray-200 pb-4 mb-6">
                       <h2 className="text-2xl font-bold text-gray-900">{applicant.name}</h2>
@@ -772,29 +746,44 @@ export default function CandidateDetailPage() {
             </div>
           )}
 
-          {/* Tab 2: Timeline History */}
+          {/* Tab 2: Scorecards */}
           {activeTab === 2 && (
+            <Scorecards
+              applicantId={applicant.id}
+              requiredSkills={
+                job?.required_skills
+                  ? job.required_skills
+                      .split(',')
+                      .map((s) => s.trim())
+                      .filter((s) => s.length > 0)
+                  : []
+              }
+            />
+          )}
+
+          {/* Tab 3: Timeline History */}
+          {activeTab === 3 && (
             <div className="bg-card border border-card-border rounded-xl p-6">
               <Timeline applicant={applicant} />
             </div>
           )}
 
-          {/* Tab 3: Internal Notes */}
-          {activeTab === 3 && (
+          {/* Tab 4: Internal Notes */}
+          {activeTab === 4 && (
             <div className="bg-card border border-card-border rounded-xl p-6">
               <h3 className="text-sm font-bold mb-4">Internal Notes</h3>
               <textarea
                 value={noteDraft}
                 onChange={(e) => setNoteDraft(e.target.value)}
                 placeholder="Add a note about this candidate…"
-                className="w-full h-32 bg-background border border-card-border rounded-lg p-4 text-sm resize-none outline-none focus:border-[#FF6B35] transition-colors placeholder:text-muted-foreground"
+                className="w-full h-32 bg-background border border-card-border rounded-lg p-4 text-sm resize-none outline-none focus:border-accent transition-colors placeholder:text-muted-foreground"
                 maxLength={4000}
               />
               <div className="flex justify-end mt-3 mb-6">
                 <button
                   onClick={saveNote}
                   disabled={savingNote || !noteDraft.trim()}
-                  className="px-5 py-2.5 text-sm font-semibold bg-[#FF6B35] hover:bg-[#e85a25] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                  className="px-5 py-2.5 text-sm font-semibold bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
                 >
                   {savingNote ? 'Saving…' : 'Add Note'}
                 </button>
@@ -867,22 +856,62 @@ export default function CandidateDetailPage() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={async () => {
-              await updateApplicantStatus(applicant.id, 'rejected');
-              router.push('/candidates');
-            }}
+            onClick={() => setShowRejectModal(true)}
             className="px-5 py-2.5 text-sm font-medium border border-danger text-danger rounded-lg hover:bg-danger/10 transition-colors"
           >
             Reject Candidate
           </button>
           <button
+            onClick={() => setShowBookingLink(true)}
+            className="px-5 py-2.5 text-sm font-medium border border-card-border rounded-lg hover:bg-background transition-colors"
+          >
+            Send booking link
+          </button>
+          <button
             onClick={() => setShowConfirm(true)}
-            className="px-5 py-2.5 text-sm font-bold bg-[#FF6B35] hover:bg-[#e85a25] text-white rounded-lg transition-colors"
+            className="px-5 py-2.5 text-sm font-bold bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
           >
             Confirm &amp; Schedule Interview
           </button>
         </div>
       </div>
+
+      {showBookingLink && (
+        <BookingLinkModal
+          applicantId={applicant.id}
+          applicantName={applicant.name}
+          onClose={() => setShowBookingLink(false)}
+        />
+      )}
+
+      {showRejectModal && (
+        <RejectReasonModal
+          targets={[{ id: applicant.id, name: applicant.name, email: applicant.email }]}
+          onCancel={() => setShowRejectModal(false)}
+          onConfirm={async (reason: RejectionReason, customNote: string) => {
+            try {
+              const result = await rejectApplicantWithReason(
+                applicant.id,
+                reason,
+                customNote || undefined,
+              );
+              setShowRejectModal(false);
+              setToast(
+                result.emailed
+                  ? `${applicant.name} rejected · email sent`
+                  : `${applicant.name} rejected · email failed (see Outgoing Emails)`,
+              );
+              setTimeout(() => router.push('/candidates'), 1200);
+            } catch (err) {
+              setShowRejectModal(false);
+              setToast(
+                `Reject failed: ${err instanceof Error ? err.message : 'unknown error'}`,
+              );
+              setTimeout(() => setToast(null), 4000);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

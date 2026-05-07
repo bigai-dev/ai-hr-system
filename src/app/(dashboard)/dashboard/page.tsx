@@ -9,8 +9,13 @@ import {
   getInterviewsLimited,
   insertInterview,
   updateApplicantStatus,
+  getEmailProviderStatus,
 } from '@/app/(dashboard)/actions';
 import { Applicant, Interview } from '@/lib/types';
+import ScheduleInterviewModal, {
+  buildScheduleDefaults,
+  type ScheduleValues,
+} from '@/components/ScheduleInterviewModal';
 
 // ── Dashboard Page ───────────────────────────────────────────────────────────
 export default function DashboardPage() {
@@ -20,14 +25,24 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [scheduleTarget, setScheduleTarget] = useState<Applicant | null>(null);
+  const [emailProvider, setEmailProvider] = useState<{
+    configured: boolean;
+    fromAddress: string | null;
+  } | null>(null);
 
   // Counts
   const totalCount = applicants.length;
-  const aiScreenedCount = applicants.filter((a) => a.status !== 'new').length;
-  const scheduledCount = applicants.filter((a) => a.status === 'scheduled').length;
+  const aiScreenedCount = applicants.filter(
+    (a) => a.status !== 'new' && a.status !== 'screening',
+  ).length;
+  const scheduledCount = applicants.filter(
+    (a) => a.status === 'phone_screen' || a.status === 'onsite',
+  ).length;
 
   useEffect(() => {
     fetchData();
+    getEmailProviderStatus().then(setEmailProvider).catch(() => setEmailProvider(null));
   }, []);
 
   async function fetchData() {
@@ -46,28 +61,28 @@ export default function DashboardPage() {
     setLoading(false);
   }
 
-  async function handleConfirmAutomate(applicant: Applicant) {
+  async function handleScheduleConfirmed(applicant: Applicant, values: ScheduleValues) {
     setConfirmingId(applicant.id);
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateStr = tomorrow.toISOString().split('T')[0];
-
-    // Create interview
-    await insertInterview({
-      applicant_id: applicant.id,
-      scheduled_date: dateStr,
-      scheduled_time: '14:00',
-      duration_minutes: 60,
-      type: 'Technical Round',
-    });
-
-    // Update applicant status
-    await updateApplicantStatus(applicant.id, 'scheduled');
-
-    setConfirmingId(null);
-    setToast(`${applicant.name} scheduled for ${dateStr}`);
-    setTimeout(() => setToast(null), 4000);
-    fetchData();
+    try {
+      const result = await insertInterview({
+        applicant_id: applicant.id,
+        scheduled_date: values.date,
+        scheduled_time: values.time,
+        duration_minutes: values.durationMinutes,
+        type: values.type,
+      });
+      // Only advance the candidate if they're still pre-interview.
+      if (['new', 'screening', 'screened'].includes(applicant.status)) {
+        await updateApplicantStatus(applicant.id, 'phone_screen');
+      }
+      setScheduleTarget(null);
+      const emailNote = result.email_sent ? ' · candidate emailed' : '';
+      setToast(`${applicant.name} scheduled for ${values.date} at ${values.time}${emailNote}`);
+      setTimeout(() => setToast(null), 4000);
+      fetchData();
+    } finally {
+      setConfirmingId(null);
+    }
   }
 
   function getInitials(name: string) {
@@ -95,12 +110,26 @@ export default function DashboardPage() {
       (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
     );
     sorted.slice(0, 6).forEach((a) => {
-      if (a.status === 'scheduled') {
+      if (a.status === 'phone_screen' || a.status === 'onsite') {
         events.push({
-          label: `${a.name} scheduled for interview`,
-          detail: 'Technical Round',
+          label: `${a.name} moved to ${a.status === 'phone_screen' ? 'phone screen' : 'onsite'}`,
+          detail: 'Interview stage',
           time: timeAgo(a.updated_at),
           color: '#FF6B35',
+        });
+      } else if (a.status === 'offer') {
+        events.push({
+          label: `Offer extended to ${a.name}`,
+          detail: 'Awaiting response',
+          time: timeAgo(a.updated_at),
+          color: '#FF6B35',
+        });
+      } else if (a.status === 'hired') {
+        events.push({
+          label: `${a.name} hired`,
+          detail: 'Offer accepted',
+          time: timeAgo(a.updated_at),
+          color: '#10b981',
         });
       } else if (a.status === 'screened') {
         events.push({
@@ -134,7 +163,7 @@ export default function DashboardPage() {
         <TopBar title="HIRING PIPELINE DASHBOARD" />
         <div className="p-6 flex items-center justify-center h-[calc(100vh-3.5rem)]">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-[#FF6B35] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
             <span className="text-muted text-sm">Loading pipeline data...</span>
           </div>
         </div>
@@ -150,6 +179,15 @@ export default function DashboardPage() {
         <div className="fixed top-6 right-6 z-50 bg-card border border-card-border rounded-lg shadow-lg px-5 py-3 text-sm">
           {toast}
         </div>
+      )}
+
+      {scheduleTarget && (
+        <ScheduleInterviewModal
+          applicant={scheduleTarget}
+          defaults={buildScheduleDefaults()}
+          onCancel={() => setScheduleTarget(null)}
+          onConfirm={(values) => handleScheduleConfirmed(scheduleTarget, values)}
+        />
       )}
 
       <div className="p-6 space-y-6">
@@ -173,13 +211,13 @@ export default function DashboardPage() {
             <div className="text-xs text-muted mt-1">Out of {totalCount}</div>
           </div>
 
-          {/* Scheduled */}
+          {/* Interviewing */}
           <div className="bg-card border border-card-border rounded-xl p-5">
             <span className="text-xs font-semibold text-muted uppercase tracking-wider">
-              Scheduled
+              Interviewing
             </span>
             <div className="text-3xl font-bold mt-2">{scheduledCount}</div>
-            <div className="text-xs text-muted mt-1">Interviews booked</div>
+            <div className="text-xs text-muted mt-1">In phone screen or onsite</div>
           </div>
 
           {/* System Status */}
@@ -189,19 +227,29 @@ export default function DashboardPage() {
             </span>
             <div className="mt-3 space-y-2">
               <div className="flex items-center gap-2 text-xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-success" />
                 <span className="text-muted">AI Screening:</span>
-                <span className="text-[#10b981] font-semibold">ACTIVE</span>
+                <span className="text-success font-semibold">ACTIVE</span>
               </div>
               <div className="flex items-center gap-2 text-xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    emailProvider?.configured ? 'bg-success' : 'bg-yellow-500'
+                  }`}
+                />
                 <span className="text-muted">Email:</span>
-                <span className="text-yellow-500 font-semibold">NOT CONFIGURED</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
-                <span className="text-muted">WhatsApp:</span>
-                <span className="text-yellow-500 font-semibold">NOT CONFIGURED</span>
+                <span
+                  className={`font-semibold ${
+                    emailProvider?.configured ? 'text-success' : 'text-yellow-500'
+                  }`}
+                  title={emailProvider?.fromAddress ?? undefined}
+                >
+                  {emailProvider == null
+                    ? '…'
+                    : emailProvider.configured
+                      ? 'CONFIGURED'
+                      : 'NOT CONFIGURED'}
+                </span>
               </div>
             </div>
           </div>
@@ -251,13 +299,13 @@ export default function DashboardPage() {
                       {/* Candidate Info */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-[#FF6B35]/20 flex items-center justify-center text-[#FF6B35] text-xs font-bold shrink-0">
+                          <div className="w-9 h-9 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold shrink-0">
                             {getInitials(a.name)}
                           </div>
                           <div>
                             <Link
                               href={`/candidates/${a.id}`}
-                              className="text-sm font-medium hover:text-[#FF6B35] transition-colors"
+                              className="text-sm font-medium hover:text-accent transition-colors"
                             >
                               {a.name}
                             </Link>
@@ -297,9 +345,9 @@ export default function DashboardPage() {
                       {/* Action */}
                       <td className="px-6 py-4">
                         <button
-                          onClick={() => handleConfirmAutomate(a)}
+                          onClick={() => setScheduleTarget(a)}
                           disabled={confirmingId === a.id}
-                          className="bg-[#FF6B35] hover:bg-[#e85a25] disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                          className="bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
                         >
                           {confirmingId === a.id ? (
                             <span className="flex items-center gap-2">
@@ -368,7 +416,7 @@ export default function DashboardPage() {
                   className="flex items-center justify-between bg-background rounded-lg px-4 py-3"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-[#FF6B35]/20 flex items-center justify-center text-[#FF6B35] text-xs font-bold shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold shrink-0">
                       {iv.applicant ? getInitials(iv.applicant.name) : '??'}
                     </div>
                     <div>

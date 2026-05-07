@@ -43,12 +43,30 @@ const navItems = [
 ];
 
 const settingsItems = [
+  { label: 'Scheduling', href: '/settings/scheduling' },
   { label: 'Email Template', href: '/settings/email-template' },
-  { label: 'WhatsApp Template', href: '/settings/whatsapp-template' },
+  { label: 'Outgoing Emails', href: '/settings/outgoing-emails' },
 ];
 
-export default function Sidebar() {
+function deriveInitials(name: string): string {
+  const parts = name.trim().split(/[\s_.-]+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+function prettyName(name: string): string {
+  return name
+    .split(/[\s_.-]+/)
+    .filter(Boolean)
+    .map((p) => p[0].toUpperCase() + p.slice(1))
+    .join(' ');
+}
+
+export default function Sidebar({ userName }: { userName: string }) {
   const pathname = usePathname();
+  const initials = deriveInitials(userName);
+  const displayName = prettyName(userName);
 
   return (
     <aside className="w-56 bg-sidebar border-r border-card-border flex flex-col h-screen sticky top-0">
@@ -83,9 +101,16 @@ export default function Sidebar() {
         })}
 
         {/* Settings section */}
-        <div className="mt-6 mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        <Link
+          href="/settings"
+          className={`mt-6 mb-2 px-3 text-xs font-semibold uppercase tracking-wider transition-colors block ${
+            pathname === '/settings'
+              ? 'text-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
           Settings
-        </div>
+        </Link>
         {settingsItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -103,24 +128,15 @@ export default function Sidebar() {
           );
         })}
 
-        <div className="mt-6 mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Support
-        </div>
-        <div className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          Help Center
-        </div>
       </nav>
 
       {/* User */}
       <div className="p-4 border-t border-card-border flex items-center gap-3">
         <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-sm font-bold">
-          SM
+          {initials}
         </div>
         <div>
-          <div className="text-sm font-medium">Sarah Mitchell</div>
+          <div className="text-sm font-medium">{displayName}</div>
           <div className="text-xs text-muted">ADMIN</div>
         </div>
       </div>

@@ -1,7 +1,18 @@
 import { z } from 'zod';
 import type { Applicant, Interview, Job } from './types';
 
-const ApplicantStatus = z.enum(['new', 'screening', 'screened', 'scheduled', 'rejected']);
+const ApplicantStatus = z.enum([
+  'new',
+  'screening',
+  'screened',
+  'phone_screen',
+  'onsite',
+  'offer',
+  'hired',
+  'rejected',
+  'archived',
+  'withdrawn',
+]);
 const InterviewStatus = z.enum(['scheduled', 'confirmed', 'completed']);
 const JobStatus = z.enum(['active', 'archived']);
 
@@ -48,6 +59,9 @@ export const ApplicantRow = z
     ai_match_score: NullableNumber,
     ai_reasoning: NullableString,
     ai_extracted_skills: SkillsField,
+    // .optional() — column may be missing if the pipeline-stages migration
+    // hasn't been applied yet. Falls back to updated_at in the transform.
+    stage_changed_at: NullableString.optional(),
     created_at: z.string(),
     updated_at: z.string(),
   })
@@ -66,6 +80,7 @@ export const ApplicantRow = z
     ai_match_score: r.ai_match_score,
     ai_reasoning: r.ai_reasoning,
     ai_extracted_skills: r.ai_extracted_skills,
+    stage_changed_at: r.stage_changed_at ?? r.updated_at ?? r.created_at,
     created_at: r.created_at,
     updated_at: r.updated_at,
   }));
@@ -81,6 +96,7 @@ export const JobRow = z
     min_years_experience: z.coerce.number().int().nonnegative().default(0),
     additional_notes: z.string().default(''),
     status: JobStatus,
+    hiring_manager_email: NullableString.optional(),
     created_at: z.string(),
     updated_at: z.string(),
   })
@@ -94,6 +110,7 @@ export const JobRow = z
     min_years_experience: r.min_years_experience,
     additional_notes: r.additional_notes,
     status: r.status,
+    hiring_manager_email: r.hiring_manager_email ?? null,
     created_at: r.created_at,
     updated_at: r.updated_at,
   }));
@@ -146,6 +163,7 @@ const InterviewWithJoin = z.object({
   a_ai_match_score: NullableNumber,
   a_ai_reasoning: NullableString,
   a_ai_extracted_skills: SkillsField,
+  a_stage_changed_at: NullableString.optional(),
   a_created_at: z.string().nullish(),
   a_updated_at: z.string().nullish(),
 });
@@ -176,6 +194,7 @@ export const InterviewWithApplicantRow = InterviewWithJoin.transform(
           ai_match_score: r.a_ai_match_score,
           ai_reasoning: r.a_ai_reasoning,
           ai_extracted_skills: r.a_ai_extracted_skills,
+          stage_changed_at: r.a_stage_changed_at ?? r.a_updated_at ?? r.a_created_at ?? '',
           created_at: r.a_created_at ?? '',
           updated_at: r.a_updated_at ?? '',
         }

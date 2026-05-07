@@ -6,6 +6,8 @@ import { screenApplicant } from '@/lib/screen';
 import { checkRateLimit, clientIp } from '@/lib/ratelimit';
 import { getActiveJob } from '@/lib/jobs';
 import { log } from '@/lib/log';
+import { sendEmail } from '@/lib/email';
+import { buildAcknowledgementEmail } from '@/lib/email-templates';
 
 const IP_LIMIT_MAX = 30;
 const IP_LIMIT_WINDOW_SECONDS = 60 * 60; // 1 hour
@@ -145,15 +147,34 @@ export async function POST(request: NextRequest) {
   });
 
   after(async () => {
-    try {
-      await screenApplicant(id);
-      log.info('screening_completed', { applicantId: id });
-    } catch (err) {
-      log.error('screening_failed', {
-        applicantId: id,
-        error: err instanceof Error ? err.message : 'unknown',
-      });
-    }
+    // Acknowledgement email runs in parallel with screening — both are
+    // background work and neither blocks the candidate's submit response.
+    const ack = (async () => {
+      try {
+        await sendEmail(
+          await buildAcknowledgementEmail(
+            { id, name: data.name, email: data.email, job_id: data.job_id },
+            { title: job.title },
+          ),
+        );
+      } catch (err) {
+        log.error('ack_email_failed', {
+          applicantId: id,
+          error: err instanceof Error ? err.message : 'unknown',
+        });
+      }
+    })();
+
+    const screen = screenApplicant(id)
+      .then(() => log.info('screening_completed', { applicantId: id }))
+      .catch((err) =>
+        log.error('screening_failed', {
+          applicantId: id,
+          error: err instanceof Error ? err.message : 'unknown',
+        }),
+      );
+
+    await Promise.allSettled([ack, screen]);
   });
 
   return NextResponse.json({ success: true, id });

@@ -1,0 +1,46 @@
+name: Daily Scorecard Reminders
+
+# Triggers /api/cron/scorecard-reminders every weekday at 09:00 UTC. Manager
+# inboxes get one email per job that has interviews still missing scorecards.
+#
+# Required repository secrets:
+#   SCORECARD_REMINDERS_URL  Full URL of the deployed endpoint, e.g.
+#                            https://recruit-ai.vercel.app/api/cron/scorecard-reminders
+#   CRON_SECRET              Same value as the app's CRON_SECRET env var.
+#
+# Skipped on weekends — interviewers are presumed offline, no point nagging.
+
+on:
+  schedule:
+    # Mon-Fri at 09:00 UTC.
+    - cron: '0 9 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Why are you running this manually? (audit log only)'
+        required: false
+        default: 'manual run'
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger reminders endpoint
+        env:
+          URL: ${{ secrets.SCORECARD_REMINDERS_URL }}
+          SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$SECRET" ]; then
+            echo "::error ::SCORECARD_REMINDERS_URL and CRON_SECRET secrets must be set"
+            exit 1
+          fi
+          response=$(mktemp)
+          status=$(curl -fS -w '%{http_code}' -o "$response" \
+            -H "Authorization: Bearer $SECRET" \
+            "$URL")
+          echo "HTTP $status"
+          echo "Response:"
+          cat "$response"
+          echo
+          test "$status" -ge 200 -a "$status" -lt 300

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyBasicAuth } from './lib/auth';
 
-const PUBLIC_PATH_PREFIXES = ['/apply', '/api/applications', '/api/cron', '/privacy'];
+const PUBLIC_PATH_PREFIXES = ['/apply', '/api/applications', '/api/cron', '/privacy', '/book'];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATH_PREFIXES.some(

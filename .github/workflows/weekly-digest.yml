@@ -1,0 +1,51 @@
+name: Weekly Hiring Digest
+
+# Triggers the /api/cron/weekly-digest endpoint on the deployed app every
+# Monday at 08:00 UTC. Also exposed as workflow_dispatch for manual runs
+# (useful for testing or sending an off-cycle digest).
+#
+# Required repository secrets:
+#   WEEKLY_DIGEST_URL  Full URL of the deployed endpoint, e.g.
+#                      https://recruit-ai.vercel.app/api/cron/weekly-digest
+#   CRON_SECRET        Same value as the app's CRON_SECRET env var.
+#
+# How to add them: Repo → Settings → Secrets and variables → Actions → New
+# repository secret.
+
+on:
+  schedule:
+    # cron is in UTC. Mon 08:00 UTC = 04:00 EST / 09:00 GMT / 17:00 SGT.
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Why are you running this manually? (audit log only)'
+        required: false
+        default: 'manual run'
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger digest endpoint
+        env:
+          URL: ${{ secrets.WEEKLY_DIGEST_URL }}
+          SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$SECRET" ]; then
+            echo "::error ::WEEKLY_DIGEST_URL and CRON_SECRET secrets must be set"
+            exit 1
+          fi
+          # -fS makes curl fail on HTTP errors; -w prints status + summary;
+          # -o captures the JSON body so we can include it in the run log.
+          response=$(mktemp)
+          status=$(curl -fS -w '%{http_code}' -o "$response" \
+            -H "Authorization: Bearer $SECRET" \
+            "$URL")
+          echo "HTTP $status"
+          echo "Response:"
+          cat "$response"
+          echo
+          # Bare "1" emits exit 0; any non-2xx already errored out via -f.
+          test "$status" -ge 200 -a "$status" -lt 300

@@ -17,7 +17,7 @@ export default function PrivacyPage() {
           <h2 className="text-lg font-semibold text-gray-900">What we collect</h2>
           <p className="text-sm leading-relaxed">
             When you submit an application via{' '}
-            <Link href="/apply" className="text-[#FF6B35] hover:underline">
+            <Link href="/apply" className="text-accent hover:underline">
               /apply
             </Link>
             , we collect: your name, email, phone, current job title, years of
@@ -68,7 +68,7 @@ export default function PrivacyPage() {
         </section>
 
         <p className="mt-10 text-center">
-          <Link href="/apply" className="text-sm text-[#FF6B35] hover:underline">
+          <Link href="/apply" className="text-sm text-accent hover:underline">
             ← Back to application
           </Link>
         </p>
