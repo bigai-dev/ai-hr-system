@@ -22,11 +22,6 @@ function SkillsField({
   placeholder: string;
   hint: string;
 }) {
-  const chips = value
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-
   return (
     <div>
       <label htmlFor={id} className="block text-sm font-medium mb-1.5">
@@ -41,18 +36,6 @@ function SkillsField({
         className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
       />
       <p className="text-xs text-muted mt-1">{hint}</p>
-      {chips.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-2">
-          {chips.map((skill, i) => (
-            <span
-              key={`${skill}-${i}`}
-              className="inline-flex items-center px-2.5 py-1 rounded-full text-xs bg-accent/10 text-accent border border-accent/20"
-            >
-              {skill}
-            </span>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
