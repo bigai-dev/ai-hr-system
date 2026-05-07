@@ -5,12 +5,21 @@ export const ApplicationSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
   phone: z.string().trim().max(32).optional().default(''),
   job_title: z.string().trim().max(200).optional().default(''),
+  job_id: z.string().uuid(),
   years_experience: z.coerce.number().int().min(0).max(60).default(0),
   cover_letter: z.string().trim().max(5000).optional().default(''),
   upload_id: z.string().uuid().optional(),
 });
 
 export type ApplicationInput = z.infer<typeof ApplicationSchema>;
+
+export const JobInputSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  description: z.string().trim().min(1).max(20_000),
+  status: z.enum(['active', 'archived']).default('active'),
+});
+
+export type JobInput = z.infer<typeof JobInputSchema>;
 
 export const ScheduleInterviewSchema = z.object({
   applicant_id: z.string().uuid(),

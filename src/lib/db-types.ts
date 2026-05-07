@@ -1,8 +1,9 @@
 import { z } from 'zod';
-import type { Applicant, Interview } from './types';
+import type { Applicant, Interview, Job } from './types';
 
 const ApplicantStatus = z.enum(['new', 'screening', 'screened', 'scheduled', 'rejected']);
 const InterviewStatus = z.enum(['scheduled', 'confirmed', 'completed']);
+const JobStatus = z.enum(['active', 'archived']);
 
 const NullableString = z
   .union([z.string(), z.null(), z.undefined()])
@@ -38,6 +39,7 @@ export const ApplicantRow = z
     email: z.string(),
     phone: NullableString,
     job_title: NullableString,
+    job_id: NullableString,
     years_experience: z.coerce.number().int().nonnegative(),
     cover_letter: NullableString,
     resume_url: NullableString,
@@ -55,6 +57,7 @@ export const ApplicantRow = z
     email: r.email,
     phone: r.phone ?? '',
     job_title: r.job_title ?? '',
+    job_id: r.job_id,
     years_experience: r.years_experience,
     cover_letter: r.cover_letter ?? '',
     resume_url: r.resume_url,
@@ -66,6 +69,17 @@ export const ApplicantRow = z
     created_at: r.created_at,
     updated_at: r.updated_at,
   }));
+
+export const JobRow = z
+  .object({
+    id: z.string(),
+    title: z.string(),
+    description: z.string(),
+    status: JobStatus,
+    created_at: z.string(),
+    updated_at: z.string(),
+  })
+  .transform((r): Job => r);
 
 export const InterviewRow = z
   .object({
@@ -106,6 +120,7 @@ const InterviewWithJoin = z.object({
   a_email: z.string().nullish(),
   a_phone: NullableString,
   a_job_title: NullableString,
+  a_job_id: NullableString,
   a_years_experience: NullableNumber,
   a_cover_letter: NullableString,
   a_resume_url: NullableString,
@@ -135,6 +150,7 @@ export const InterviewWithApplicantRow = InterviewWithJoin.transform(
           email: r.a_email ?? '',
           phone: r.a_phone ?? '',
           job_title: r.a_job_title ?? '',
+          job_id: r.a_job_id,
           years_experience: r.a_years_experience ?? 0,
           cover_letter: r.a_cover_letter ?? '',
           resume_url: r.a_resume_url,

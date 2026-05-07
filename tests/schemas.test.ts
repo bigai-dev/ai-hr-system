@@ -13,6 +13,7 @@ describe('ApplicationSchema', () => {
     email: 'jane@example.com',
     phone: '+15555555555',
     job_title: 'Senior Engineer',
+    job_id: '00000000-0000-4000-8000-000000000001',
     years_experience: '5',
     cover_letter: 'I would like to apply.',
   };

@@ -4,6 +4,7 @@ import { ApplicationSchema, MAX_RESUME_BYTES, PDF_MAGIC } from '@/lib/schemas';
 import { turso } from '@/lib/turso';
 import { screenApplicant } from '@/lib/screen';
 import { checkRateLimit, clientIp } from '@/lib/ratelimit';
+import { getActiveJob } from '@/lib/jobs';
 import { log } from '@/lib/log';
 
 const IP_LIMIT_MAX = 30;
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest) {
     email: String(formData.get('email') ?? ''),
     phone: String(formData.get('phone') ?? ''),
     job_title: String(formData.get('job_title') ?? ''),
+    job_id: String(formData.get('job_id') ?? ''),
     years_experience: formData.get('years_experience') ?? 0,
     cover_letter: String(formData.get('cover_letter') ?? ''),
   };
@@ -56,6 +58,14 @@ export async function POST(request: NextRequest) {
     );
   }
   const data = parsed.data;
+
+  const job = await getActiveJob(data.job_id);
+  if (!job) {
+    return NextResponse.json(
+      { error: 'Selected position is no longer accepting applications' },
+      { status: 400 }
+    );
+  }
 
   const emailLimit = await checkRateLimit(
     `apply:email:${data.email}`,
@@ -108,14 +118,15 @@ export async function POST(request: NextRequest) {
   try {
     await turso.execute({
       sql: `INSERT INTO applicants
-              (id, name, email, phone, job_title, years_experience, cover_letter, resume_url, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'new')`,
+              (id, name, email, phone, job_title, job_id, years_experience, cover_letter, resume_url, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'new')`,
       args: [
         id,
         data.name,
         data.email,
         data.phone,
         data.job_title,
+        data.job_id,
         data.years_experience,
         data.cover_letter,
         resumeUrl,
@@ -126,7 +137,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Could not save application' }, { status: 500 });
   }
 
-  log.info('application_received', { applicantId: id, email: data.email, hasResume: !!resumeUrl });
+  log.info('application_received', {
+    applicantId: id,
+    email: data.email,
+    jobId: data.job_id,
+    hasResume: !!resumeUrl,
+  });
 
   after(async () => {
     try {

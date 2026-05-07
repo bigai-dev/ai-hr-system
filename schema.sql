@@ -2,12 +2,25 @@
 -- Run once against a fresh Turso database:
 --   turso db shell recruit-ai < schema.sql
 
+CREATE TABLE IF NOT EXISTS jobs (
+  id          TEXT PRIMARY KEY,
+  title       TEXT NOT NULL,
+  description TEXT NOT NULL,
+  status      TEXT NOT NULL DEFAULT 'active'
+              CHECK (status IN ('active', 'archived')),
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
+
 CREATE TABLE IF NOT EXISTS applicants (
   id                       TEXT PRIMARY KEY,
   name                     TEXT NOT NULL,
   email                    TEXT NOT NULL,
   phone                    TEXT,
-  job_title                TEXT,
+  job_title                TEXT,                  -- candidate's CURRENT title
+  job_id                   TEXT REFERENCES jobs(id), -- the role they applied for
   years_experience         INTEGER DEFAULT 0,
   cover_letter             TEXT,
   resume_url               TEXT,
@@ -29,6 +42,8 @@ CREATE INDEX IF NOT EXISTS idx_applicants_status
   ON applicants(status);
 CREATE INDEX IF NOT EXISTS idx_applicants_score
   ON applicants(ai_match_score DESC);
+CREATE INDEX IF NOT EXISTS idx_applicants_job
+  ON applicants(job_id);
 
 CREATE TABLE IF NOT EXISTS interviews (
   id                TEXT PRIMARY KEY,

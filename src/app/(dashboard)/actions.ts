@@ -4,13 +4,14 @@ import { del } from '@vercel/blob';
 import { turso } from '@/lib/turso';
 import { requireAuth, getCurrentUser } from '@/lib/auth';
 import { log } from '@/lib/log';
-import { ApplicantStatusSchema, ScheduleInterviewSchema } from '@/lib/schemas';
-import { ApplicantRow, InterviewWithApplicantRow } from '@/lib/db-types';
-import type { Applicant, Interview } from '@/lib/types';
+import { ApplicantStatusSchema, JobInputSchema, ScheduleInterviewSchema } from '@/lib/schemas';
+import { ApplicantRow, InterviewWithApplicantRow, JobRow } from '@/lib/db-types';
+import type { Applicant, Interview, Job } from '@/lib/types';
 
 const INTERVIEW_JOIN_SQL = `SELECT i.*,
     a.id as a_id, a.name as a_name, a.email as a_email, a.phone as a_phone,
-    a.job_title as a_job_title, a.years_experience as a_years_experience,
+    a.job_title as a_job_title, a.job_id as a_job_id,
+    a.years_experience as a_years_experience,
     a.cover_letter as a_cover_letter, a.resume_url as a_resume_url,
     a.resume_text as a_resume_text, a.status as a_status,
     a.ai_match_score as a_ai_match_score, a.ai_reasoning as a_ai_reasoning,
@@ -196,4 +197,60 @@ export async function addNote(applicantId: string, body: string): Promise<Applic
 export async function deleteNote(noteId: string): Promise<void> {
   await requireAuth();
   await turso.execute({ sql: 'DELETE FROM applicant_notes WHERE id = ?', args: [noteId] });
+}
+
+// ── Jobs (admin CRUD) ────────────────────────────────────────────────────
+
+export async function listJobs(): Promise<Job[]> {
+  await requireAuth();
+  const result = await turso.execute(
+    "SELECT * FROM jobs ORDER BY CASE status WHEN 'active' THEN 0 ELSE 1 END, created_at DESC"
+  );
+  return result.rows.map((r) => JobRow.parse(r));
+}
+
+export async function getJob(id: string): Promise<Job | null> {
+  await requireAuth();
+  const result = await turso.execute({
+    sql: 'SELECT * FROM jobs WHERE id = ?',
+    args: [id],
+  });
+  if (result.rows.length === 0) return null;
+  return JobRow.parse(result.rows[0]);
+}
+
+export async function createJob(input: unknown): Promise<{ id: string }> {
+  await requireAuth();
+  const parsed = JobInputSchema.parse(input);
+  const id = crypto.randomUUID();
+  await turso.execute({
+    sql: `INSERT INTO jobs (id, title, description, status) VALUES (?, ?, ?, ?)`,
+    args: [id, parsed.title, parsed.description, parsed.status],
+  });
+  log.info('job_created', { jobId: id, title: parsed.title });
+  return { id };
+}
+
+export async function updateJob(id: string, input: unknown): Promise<void> {
+  await requireAuth();
+  const parsed = JobInputSchema.parse(input);
+  await turso.execute({
+    sql: `UPDATE jobs
+            SET title = ?, description = ?, status = ?, updated_at = datetime('now')
+            WHERE id = ?`,
+    args: [parsed.title, parsed.description, parsed.status, id],
+  });
+  log.info('job_updated', { jobId: id });
+}
+
+export async function setJobStatus(id: string, status: 'active' | 'archived'): Promise<void> {
+  await requireAuth();
+  if (status !== 'active' && status !== 'archived') {
+    throw new Error('Invalid job status');
+  }
+  await turso.execute({
+    sql: "UPDATE jobs SET status = ?, updated_at = datetime('now') WHERE id = ?",
+    args: [status, id],
+  });
+  log.info('job_status_changed', { jobId: id, status });
 }

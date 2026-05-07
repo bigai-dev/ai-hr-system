@@ -4,6 +4,7 @@ export interface Applicant {
   email: string;
   phone: string;
   job_title: string;
+  job_id: string | null;
   years_experience: number;
   cover_letter: string;
   resume_url: string | null;
@@ -12,6 +13,15 @@ export interface Applicant {
   ai_match_score: number | null;
   ai_reasoning: string | null;
   ai_extracted_skills: string[] | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Job {
+  id: string;
+  title: string;
+  description: string;
+  status: 'active' | 'archived';
   created_at: string;
   updated_at: string;
 }

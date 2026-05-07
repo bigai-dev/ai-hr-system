@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
-import { JOB_DESCRIPTION } from './job-description';
 import { turso } from './turso';
+import { getJobById } from './jobs';
 import { log } from './log';
 
 const MAX_RESUME_CHARS = 30_000;
@@ -66,7 +66,8 @@ export interface ScreenResult {
   manual_review: boolean;
 }
 
-const SYSTEM_PROMPT = `You are an HR screening assistant. You evaluate candidates against a fixed job description and return a structured JSON score.
+function buildSystemPrompt(jobDescription: string): string {
+  return `You are an HR screening assistant. You evaluate candidates against a fixed job description and return a structured JSON score.
 
 Scoring guidance:
 - Base your score PRIMARILY on the candidate resume content. The cover letter is supplementary context only and should not significantly influence the score when a resume is provided.
@@ -87,7 +88,8 @@ OUTPUT FORMAT — return ONLY a JSON object with this exact shape:
 }
 
 JOB DESCRIPTION (authoritative — use only this to evaluate):
-${JOB_DESCRIPTION}`;
+${jobDescription}`;
+}
 
 interface ScoreOutput {
   match_score: number;
@@ -138,6 +140,15 @@ export async function screenApplicant(applicantId: string): Promise<ScreenResult
     };
   }
 
+  const jobId = (applicant.job_id as string | null) ?? null;
+  if (!jobId) {
+    throw new Error('Applicant has no job_id; cannot screen');
+  }
+  const job = await getJobById(jobId);
+  if (!job) {
+    throw new Error(`Job ${jobId} not found; cannot screen applicant ${applicantId}`);
+  }
+
   let resumeText = '';
   try {
     resumeText = await extractResumeText((applicant.resume_url as string) ?? null);
@@ -179,7 +190,7 @@ Return your evaluation as a JSON object.`;
     max_tokens: MAX_OUTPUT_TOKENS,
     response_format: { type: 'json_object' },
     messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: buildSystemPrompt(job.description) },
       { role: 'user', content: userMessage },
     ],
   });
