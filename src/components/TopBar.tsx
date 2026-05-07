@@ -38,14 +38,6 @@ export default function TopBar({ title }: { title?: string }) {
           </svg>
           <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full"></span>
         </button>
-        {/* AI Status */}
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-muted">AI STATUS</span>
-          <span className="flex items-center gap-1 text-success font-medium">
-            <span className="w-2 h-2 bg-success rounded-full animate-pulse"></span>
-            ACTIVE
-          </span>
-        </div>
       </div>
     </header>
   );
