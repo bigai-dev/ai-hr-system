@@ -224,8 +224,21 @@ export async function createJob(input: unknown): Promise<{ id: string }> {
   const parsed = JobInputSchema.parse(input);
   const id = crypto.randomUUID();
   await turso.execute({
-    sql: `INSERT INTO jobs (id, title, description, status) VALUES (?, ?, ?, ?)`,
-    args: [id, parsed.title, parsed.description, parsed.status],
+    sql: `INSERT INTO jobs (
+            id, title, summary, responsibilities, required_skills,
+            nice_to_have_skills, min_years_experience, additional_notes, status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [
+      id,
+      parsed.title,
+      parsed.summary,
+      parsed.responsibilities,
+      parsed.required_skills,
+      parsed.nice_to_have_skills,
+      parsed.min_years_experience,
+      parsed.additional_notes,
+      parsed.status,
+    ],
   });
   log.info('job_created', { jobId: id, title: parsed.title });
   return { id };
@@ -235,10 +248,28 @@ export async function updateJob(id: string, input: unknown): Promise<void> {
   await requireAuth();
   const parsed = JobInputSchema.parse(input);
   await turso.execute({
-    sql: `UPDATE jobs
-            SET title = ?, description = ?, status = ?, updated_at = datetime('now')
-            WHERE id = ?`,
-    args: [parsed.title, parsed.description, parsed.status, id],
+    sql: `UPDATE jobs SET
+            title = ?,
+            summary = ?,
+            responsibilities = ?,
+            required_skills = ?,
+            nice_to_have_skills = ?,
+            min_years_experience = ?,
+            additional_notes = ?,
+            status = ?,
+            updated_at = datetime('now')
+          WHERE id = ?`,
+    args: [
+      parsed.title,
+      parsed.summary,
+      parsed.responsibilities,
+      parsed.required_skills,
+      parsed.nice_to_have_skills,
+      parsed.min_years_experience,
+      parsed.additional_notes,
+      parsed.status,
+      id,
+    ],
   });
   log.info('job_updated', { jobId: id });
 }

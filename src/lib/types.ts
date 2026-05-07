@@ -20,7 +20,12 @@ export interface Applicant {
 export interface Job {
   id: string;
   title: string;
-  description: string;
+  summary: string;
+  responsibilities: string;
+  required_skills: string;        // comma-separated
+  nice_to_have_skills: string;    // comma-separated
+  min_years_experience: number;
+  additional_notes: string;
   status: 'active' | 'archived';
   created_at: string;
   updated_at: string;

@@ -74,12 +74,29 @@ export const JobRow = z
   .object({
     id: z.string(),
     title: z.string(),
-    description: z.string(),
+    summary: z.string().default(''),
+    responsibilities: z.string().default(''),
+    required_skills: z.string().default(''),
+    nice_to_have_skills: z.string().default(''),
+    min_years_experience: z.coerce.number().int().nonnegative().default(0),
+    additional_notes: z.string().default(''),
     status: JobStatus,
     created_at: z.string(),
     updated_at: z.string(),
   })
-  .transform((r): Job => r);
+  .transform((r): Job => ({
+    id: r.id,
+    title: r.title,
+    summary: r.summary,
+    responsibilities: r.responsibilities,
+    required_skills: r.required_skills,
+    nice_to_have_skills: r.nice_to_have_skills,
+    min_years_experience: r.min_years_experience,
+    additional_notes: r.additional_notes,
+    status: r.status,
+    created_at: r.created_at,
+    updated_at: r.updated_at,
+  }));
 
 export const InterviewRow = z
   .object({

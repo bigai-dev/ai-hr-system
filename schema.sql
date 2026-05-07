@@ -3,13 +3,18 @@
 --   turso db shell recruit-ai < schema.sql
 
 CREATE TABLE IF NOT EXISTS jobs (
-  id          TEXT PRIMARY KEY,
-  title       TEXT NOT NULL,
-  description TEXT NOT NULL,
-  status      TEXT NOT NULL DEFAULT 'active'
-              CHECK (status IN ('active', 'archived')),
-  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  id                    TEXT PRIMARY KEY,
+  title                 TEXT NOT NULL,
+  summary               TEXT NOT NULL DEFAULT '',
+  responsibilities      TEXT NOT NULL DEFAULT '',
+  required_skills       TEXT NOT NULL DEFAULT '',  -- comma-separated
+  nice_to_have_skills   TEXT NOT NULL DEFAULT '',  -- comma-separated
+  min_years_experience  INTEGER NOT NULL DEFAULT 0,
+  additional_notes      TEXT NOT NULL DEFAULT '',
+  status                TEXT NOT NULL DEFAULT 'active'
+                        CHECK (status IN ('active', 'archived')),
+  created_at            TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at            TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);

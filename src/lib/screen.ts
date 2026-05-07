@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { turso } from './turso';
 import { getJobById } from './jobs';
 import { log } from './log';
+import type { Job } from './types';
 
 const MAX_RESUME_CHARS = 30_000;
 const MAX_COVER_LETTER_CHARS = 5_000;
@@ -66,11 +67,33 @@ export interface ScreenResult {
   manual_review: boolean;
 }
 
-function buildSystemPrompt(jobDescription: string): string {
+function asBulletList(commaSeparated: string): string {
+  const items = commaSeparated
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return items.length > 0 ? items.map((s) => `- ${s}`).join('\n') : '(none specified)';
+}
+
+function jobToJD(job: Job): string {
+  const sections: string[] = [`ROLE: ${job.title}`];
+  if (job.summary) sections.push(`OVERVIEW:\n${job.summary}`);
+  if (job.responsibilities) sections.push(`RESPONSIBILITIES:\n${job.responsibilities}`);
+  sections.push(`REQUIRED SKILLS (must-have):\n${asBulletList(job.required_skills)}`);
+  sections.push(`NICE-TO-HAVE SKILLS (bonus, not required):\n${asBulletList(job.nice_to_have_skills)}`);
+  sections.push(`MINIMUM YEARS OF EXPERIENCE: ${job.min_years_experience}`);
+  if (job.additional_notes) sections.push(`ADDITIONAL NOTES:\n${job.additional_notes}`);
+  return sections.join('\n\n');
+}
+
+function buildSystemPrompt(job: Job): string {
   return `You are an HR screening assistant. You evaluate candidates against a fixed job description and return a structured JSON score.
 
 Scoring guidance:
 - Base your score PRIMARILY on the candidate resume content. The cover letter is supplementary context only and should not significantly influence the score when a resume is provided.
+- Required skills carry the most weight; missing several required skills should pull the score below 60.
+- Nice-to-have skills add bonus but their absence does not penalise.
+- Years of experience: candidates significantly below the minimum should be capped accordingly.
 - 90-100: Excellent match — clear evidence of all major required skills and equivalent experience.
 - 75-89: Strong match — most required skills present, some gaps.
 - 60-74: Good fit — partial alignment, notable gaps.
@@ -88,7 +111,7 @@ OUTPUT FORMAT — return ONLY a JSON object with this exact shape:
 }
 
 JOB DESCRIPTION (authoritative — use only this to evaluate):
-${jobDescription}`;
+${jobToJD(job)}`;
 }
 
 interface ScoreOutput {
@@ -190,7 +213,7 @@ Return your evaluation as a JSON object.`;
     max_tokens: MAX_OUTPUT_TOKENS,
     response_format: { type: 'json_object' },
     messages: [
-      { role: 'system', content: buildSystemPrompt(job.description) },
+      { role: 'system', content: buildSystemPrompt(job) },
       { role: 'user', content: userMessage },
     ],
   });

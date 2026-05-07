@@ -15,7 +15,12 @@ export type ApplicationInput = z.infer<typeof ApplicationSchema>;
 
 export const JobInputSchema = z.object({
   title: z.string().trim().min(1).max(200),
-  description: z.string().trim().min(1).max(20_000),
+  summary: z.string().trim().min(1).max(2_000),
+  responsibilities: z.string().trim().max(4_000).optional().default(''),
+  required_skills: z.string().trim().max(2_000).optional().default(''),
+  nice_to_have_skills: z.string().trim().max(2_000).optional().default(''),
+  min_years_experience: z.coerce.number().int().min(0).max(60).default(0),
+  additional_notes: z.string().trim().max(4_000).optional().default(''),
   status: z.enum(['active', 'archived']).default('active'),
 });
 
