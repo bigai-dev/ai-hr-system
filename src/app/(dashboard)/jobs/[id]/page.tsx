@@ -16,7 +16,7 @@ export default async function EditJobPage({
   return (
     <div className="flex-1">
       <TopBar />
-      <div className="p-6 md:p-8 max-w-3xl">
+      <div className="p-4 md:p-6 lg:p-8 max-w-3xl">
         <div className="mb-6">
           <Link href="/jobs" className="text-sm text-muted hover:text-foreground">
             ← Back to jobs

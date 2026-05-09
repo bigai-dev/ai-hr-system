@@ -67,7 +67,7 @@ export default function OutgoingEmailsPage() {
   return (
     <div className="min-h-screen">
       <TopBar title="Outgoing Emails" />
-      <div className="p-6 space-y-4">
+      <div className="p-4 md:p-6 space-y-4">
         {provider && !provider.configured && (
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-xs text-amber-500">
             <strong>Mock-log mode:</strong> RESEND_API_KEY is not set, so no real emails are being sent.

@@ -1,4 +1,5 @@
 import Sidebar from '@/components/Sidebar';
+import { MobileNavProvider } from '@/components/MobileNavContext';
 
 export default function DashboardLayout({
   children,
@@ -10,9 +11,11 @@ export default function DashboardLayout({
   // the client trying to access process.env.
   const userName = process.env.BASIC_AUTH_USER ?? 'admin';
   return (
-    <div className="flex min-h-screen">
-      <Sidebar userName={userName} />
-      <main className="flex-1 overflow-auto">{children}</main>
-    </div>
+    <MobileNavProvider>
+      <div className="flex min-h-screen">
+        <Sidebar userName={userName} />
+        <main className="flex-1 min-w-0 overflow-auto">{children}</main>
+      </div>
+    </MobileNavProvider>
   );
 }

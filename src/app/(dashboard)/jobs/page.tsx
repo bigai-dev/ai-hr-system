@@ -30,7 +30,7 @@ export default function JobsPage() {
   return (
     <div className="flex-1">
       <TopBar />
-      <div className="p-6 md:p-8">
+      <div className="p-4 md:p-6 lg:p-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-semibold">Jobs</h1>
@@ -54,7 +54,8 @@ export default function JobsPage() {
           </div>
         ) : (
           <div className="bg-card border border-card-border rounded-2xl overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-160">
               <thead className="bg-sidebar/50">
                 <tr className="text-left text-xs uppercase tracking-wider text-muted">
                   <th className="px-5 py-3 font-medium">Title</th>
@@ -100,6 +101,7 @@ export default function JobsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </div>

@@ -277,7 +277,7 @@ export default function SchedulingPage() {
           {toast}
         </div>
       )}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-4 md:p-6">
         {/* Header */}
         <div className="flex items-start justify-between mb-6 gap-4">
           <div>
@@ -297,7 +297,7 @@ export default function SchedulingPage() {
           </button>
         </div>
 
-        <div className="flex gap-6">
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* Main calendar area */}
           <div className="flex-1 bg-white dark:bg-[#242424] border border-gray-200 dark:border-[#333] rounded-xl overflow-hidden">
             {/* Calendar header */}
@@ -1070,7 +1070,7 @@ function ScheduleMeetingModal({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search by name, email, or current role…"
-                  className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+                  className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
                 />
                 <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-[#333] divide-y divide-gray-200 dark:divide-[#333]">
                   {filtered.length === 0 ? (
@@ -1105,7 +1105,7 @@ function ScheduleMeetingModal({
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+                className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
               />
             </div>
             <div>
@@ -1115,7 +1115,7 @@ function ScheduleMeetingModal({
               <select
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+                className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
               >
                 {HOURS.flatMap((h) => [
                   `${String(h).padStart(2, '0')}:00`,
@@ -1137,7 +1137,7 @@ function ScheduleMeetingModal({
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value)}
-                className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+                className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
               >
                 <option>Phone Screen</option>
                 <option>Technical Screen</option>
@@ -1154,7 +1154,7 @@ function ScheduleMeetingModal({
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+                className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
               >
                 <option value={15}>15 min</option>
                 <option value={30}>30 min</option>

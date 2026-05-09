@@ -141,6 +141,7 @@ function CandidateCard({
   selected,
   onToggleSelect,
   onRestore,
+  onMoveStage,
 }: {
   a: Applicant;
   onDragStart: (id: string) => void;
@@ -149,6 +150,7 @@ function CandidateCard({
   selected: boolean;
   onToggleSelect: (id: string) => void;
   onRestore?: (id: string) => void;
+  onMoveStage?: (a: Applicant, target: ApplicantStatus) => void;
 }) {
   const score = a.ai_match_score;
   const scoreColor = SCORE_COLOR(score);
@@ -197,6 +199,39 @@ function CandidateCard({
       className={`${baseClass} cursor-grab active:cursor-grabbing`}
     >
       <CardBody a={a} score={score} scoreColor={scoreColor} />
+      {/* Mobile: tap-to-move replaces drag-and-drop (HTML5 DnD doesn't fire touch events). */}
+      {onMoveStage && !onRestore && (
+        <div
+          className="md:hidden mt-2"
+          onClick={(e) => {
+            // Don't let taps on the select bubble up to the parent <Link>.
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
+          <select
+            value=""
+            onChange={(e) => {
+              const target = e.target.value as ApplicantStatus;
+              if (target) onMoveStage(a, target);
+              e.target.value = '';
+            }}
+            className="w-full text-base bg-background border border-card-border rounded-md px-2 py-1.5 text-foreground"
+            aria-label={`Move ${a.name} to a different stage`}
+          >
+            <option value="" disabled>
+              ⇄ Move stage…
+            </option>
+            {[...PIPELINE_STAGES, ...TERMINAL_STAGES]
+              .filter((s) => s !== a.status && s !== 'screening')
+              .map((s) => (
+                <option key={s} value={s}>
+                  {STAGE_LABELS[s]}
+                </option>
+              ))}
+          </select>
+        </div>
+      )}
       {onRestore && (
         <button
           onClick={(e) => {
@@ -227,6 +262,7 @@ function Column({
   selectedIds,
   onToggleSelect,
   onRestore,
+  onMoveStage,
 }: {
   stage: ApplicantStatus;
   applicants: Applicant[];
@@ -240,6 +276,7 @@ function Column({
   selectedIds: Set<string>;
   onToggleSelect: (id: string) => void;
   onRestore?: (id: string) => void;
+  onMoveStage?: (a: Applicant, target: ApplicantStatus) => void;
 }) {
   const isOver = dragOverStage === stage;
   return (
@@ -277,6 +314,7 @@ function Column({
               selected={selectedIds.has(a.id)}
               onToggleSelect={onToggleSelect}
               onRestore={onRestore}
+              onMoveStage={onMoveStage}
             />
           ))
         )}
@@ -373,35 +411,28 @@ export default function CandidateKanban() {
     if (dragOverStage !== stage) setDragOverStage(stage);
   }
 
-  async function handleDrop(e: React.DragEvent, targetStage: ApplicantStatus) {
-    e.preventDefault();
-    const id = e.dataTransfer.getData('text/plain');
-    setDraggingId(null);
-    setDragOverStage(null);
-    if (!id) return;
-    const candidate = applicants.find((a) => a.id === id);
-    if (!candidate || candidate.status === targetStage) return;
+  // Core stage-change routing — shared by drag-and-drop (desktop) and the
+  // mobile per-card "Move stage" select. Handles the special-case stages
+  // (rejected → reason modal, phone_screen/onsite → schedule modal) and
+  // performs an optimistic update with rollback for everything else.
+  async function moveCandidate(candidate: Applicant, targetStage: ApplicantStatus) {
+    if (candidate.status === targetStage) return;
 
-    // Drop on Rejected → require an explicit reason via modal (rejection sends
-    // a real email to the candidate and should never fire on a misclick).
     if (targetStage === 'rejected') {
-      setRejectModalIds([id]);
+      setRejectModalIds([candidate.id]);
       return;
     }
 
-    // Drop on a real interview stage → open the schedule modal so we capture
-    // an actual date/time instead of leaving a stage change with no interview.
     if (targetStage === 'phone_screen' || targetStage === 'onsite') {
       setScheduleTarget({ candidate, targetStage });
       return;
     }
 
-    // Optimistic update for everything else.
     const prev = applicants;
     const now = new Date().toISOString();
     setApplicants((curr) =>
       curr.map((a) =>
-        a.id === id ? { ...a, status: targetStage, stage_changed_at: now } : a,
+        a.id === candidate.id ? { ...a, status: targetStage, stage_changed_at: now } : a,
       ),
     );
     setToast(`${candidate.name} → ${STAGE_LABELS[targetStage]}`);
@@ -409,9 +440,9 @@ export default function CandidateKanban() {
 
     try {
       if (targetStage === 'archived') {
-        await archiveApplicant(id);
+        await archiveApplicant(candidate.id);
       } else {
-        const result = await updateApplicantStatus(id, targetStage);
+        const result = await updateApplicantStatus(candidate.id, targetStage);
         if (result.cancelledInterviews > 0) {
           const n = result.cancelledInterviews;
           setToast(
@@ -421,13 +452,23 @@ export default function CandidateKanban() {
         }
       }
     } catch (err) {
-      // Rollback on failure.
       setApplicants(prev);
       setToast(
         `Failed to move ${candidate.name}: ${err instanceof Error ? err.message : 'unknown error'}`,
       );
       setTimeout(() => setToast(null), 4000);
     }
+  }
+
+  async function handleDrop(e: React.DragEvent, targetStage: ApplicantStatus) {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain');
+    setDraggingId(null);
+    setDragOverStage(null);
+    if (!id) return;
+    const candidate = applicants.find((a) => a.id === id);
+    if (!candidate) return;
+    await moveCandidate(candidate, targetStage);
   }
 
   function toggleSelect(id: string) {
@@ -550,7 +591,7 @@ export default function CandidateKanban() {
   const selectedJob = jobs.find((j) => j.id === selectedJobId) ?? null;
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-4 md:p-6 space-y-4">
       {toast && (
         <div className="fixed top-6 right-6 z-50 bg-card border border-card-border rounded-lg shadow-lg px-5 py-3 text-sm">
           {toast}
@@ -566,7 +607,7 @@ export default function CandidateKanban() {
           <select
             value={selectedJobId ?? 'all'}
             onChange={(e) => setJob(e.target.value as string | 'all')}
-            className="bg-card border border-card-border rounded-lg px-3 py-1.5 text-sm outline-none focus:border-accent transition-colors"
+            className="bg-card border border-card-border rounded-lg px-3 py-1.5 text-base md:text-sm outline-none focus:border-accent transition-colors"
           >
             <option value="all">All jobs</option>
             {activeJobs.map((j) => (
@@ -655,6 +696,7 @@ export default function CandidateKanban() {
                 selectMode={selectMode}
                 selectedIds={selectedIds}
                 onToggleSelect={toggleSelect}
+                onMoveStage={moveCandidate}
               />
             ))}
           </div>

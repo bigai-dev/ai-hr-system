@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useMobileNav } from './MobileNavContext';
 
 const navItems = [
   {
@@ -65,19 +66,47 @@ function prettyName(name: string): string {
 
 export default function Sidebar({ userName }: { userName: string }) {
   const pathname = usePathname();
+  const { open, setOpen } = useMobileNav();
   const initials = deriveInitials(userName);
   const displayName = prettyName(userName);
 
   return (
-    <aside className="w-56 bg-sidebar border-r border-card-border flex flex-col h-screen sticky top-0">
+    <>
+      {/* Mobile backdrop */}
+      <div
+        aria-hidden
+        onClick={() => setOpen(false)}
+        className={`md:hidden fixed inset-0 z-30 bg-black/50 backdrop-blur-sm transition-opacity ${
+          open ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      />
+
+      <aside
+        className={`bg-sidebar border-r border-card-border flex flex-col h-screen z-40
+          fixed top-0 left-0 w-64 transition-transform duration-200 ease-out
+          ${open ? 'translate-x-0' : '-translate-x-full'}
+          md:sticky md:translate-x-0 md:w-56 md:z-auto`}
+      >
       {/* Brand */}
-      <div className="p-5 flex items-center gap-2">
-        <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-          <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
+      <div className="p-5 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <span className="font-bold text-lg tracking-tight">RECRUIT.AI</span>
         </div>
-        <span className="font-bold text-lg tracking-tight">RECRUIT.AI</span>
+        {/* Close button — mobile only */}
+        <button
+          onClick={() => setOpen(false)}
+          aria-label="Close menu"
+          className="md:hidden p-1 -mr-1 text-muted hover:text-foreground"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       {/* Main Nav */}
@@ -140,6 +169,7 @@ export default function Sidebar({ userName }: { userName: string }) {
           <div className="text-xs text-muted">ADMIN</div>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

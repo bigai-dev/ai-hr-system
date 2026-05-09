@@ -160,7 +160,7 @@ export default function ApplyForm({ jobs }: Props) {
                 required
                 value={formData.job_id}
                 onChange={handleChange}
-                className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 text-base md:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
               >
                 {jobs.map((job) => (
                   <option key={job.id} value={job.id}>
@@ -184,7 +184,7 @@ export default function ApplyForm({ jobs }: Props) {
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="John Doe"
-                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder:text-gray-400 text-base md:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
                 />
               </div>
               <div>
@@ -199,7 +199,7 @@ export default function ApplyForm({ jobs }: Props) {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="john@example.com"
-                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder:text-gray-400 text-base md:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
                 />
               </div>
             </div>
@@ -218,7 +218,7 @@ export default function ApplyForm({ jobs }: Props) {
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="+1 (555) 000-0000"
-                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder:text-gray-400 text-base md:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
                 />
               </div>
               <div>
@@ -233,7 +233,7 @@ export default function ApplyForm({ jobs }: Props) {
                   value={formData.job_title}
                   onChange={handleChange}
                   placeholder="Senior Software Engineer"
-                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder:text-gray-400 text-base md:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
                 />
               </div>
             </div>
@@ -253,7 +253,7 @@ export default function ApplyForm({ jobs }: Props) {
                 value={formData.years_experience}
                 onChange={handleChange}
                 placeholder="5"
-                className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder:text-gray-400 text-base md:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
               />
             </div>
 
@@ -270,7 +270,7 @@ export default function ApplyForm({ jobs }: Props) {
                 value={formData.cover_letter}
                 onChange={handleChange}
                 placeholder="Tell us about yourself and why you're a great fit for this role..."
-                className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-3 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-vertical"
+                className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-3 text-gray-900 placeholder:text-gray-400 text-base md:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-vertical"
               />
             </div>
 

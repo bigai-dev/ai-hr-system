@@ -117,7 +117,7 @@ export default function SchedulingSettingsPage() {
   return (
     <div className="min-h-screen">
       <TopBar title="Scheduling settings" />
-      <div className="p-6 max-w-3xl">
+      <div className="p-4 md:p-6 max-w-3xl">
         <div className="text-xs text-muted mb-1">
           <Link href="/settings" className="hover:text-foreground transition-colors">
             ← All settings
@@ -144,7 +144,7 @@ export default function SchedulingSettingsPage() {
               value={tzInput}
               onChange={(e) => setTzInput(e.target.value)}
               placeholder="Asia/Kuala_Lumpur"
-              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors font-mono"
+              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors font-mono"
             />
             <datalist id="tz-list">
               {COMMON_TIMEZONES.map((tz) => (
@@ -190,7 +190,7 @@ export default function SchedulingSettingsPage() {
               <select
                 value={config.startHour}
                 onChange={(e) => update('startHour', Number(e.target.value))}
-                className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+                className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
               >
                 {HOUR_OPTIONS.slice(0, 24).map((h) => (
                   <option key={h} value={h}>
@@ -204,7 +204,7 @@ export default function SchedulingSettingsPage() {
               <select
                 value={config.endHour}
                 onChange={(e) => update('endHour', Number(e.target.value))}
-                className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+                className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
               >
                 {HOUR_OPTIONS.slice(1).map((h) => (
                   <option key={h} value={h}>
@@ -221,7 +221,7 @@ export default function SchedulingSettingsPage() {
             <select
               value={config.slotIntervalMinutes}
               onChange={(e) => update('slotIntervalMinutes', Number(e.target.value))}
-              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
             >
               {[15, 20, 30, 45, 60].map((n) => (
                 <option key={n} value={n}>
@@ -241,7 +241,7 @@ export default function SchedulingSettingsPage() {
               <select
                 value={config.bufferHoursFromNow}
                 onChange={(e) => update('bufferHoursFromNow', Number(e.target.value))}
-                className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+                className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
               >
                 <option value={0}>No minimum (book asap)</option>
                 <option value={2}>2 hours from now</option>
@@ -257,7 +257,7 @@ export default function SchedulingSettingsPage() {
               <select
                 value={config.lookaheadDays}
                 onChange={(e) => update('lookaheadDays', Number(e.target.value))}
-                className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+                className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
               >
                 <option value={7}>7 days</option>
                 <option value={14}>14 days</option>

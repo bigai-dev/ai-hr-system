@@ -1,15 +1,27 @@
 'use client';
 
 import { useTheme } from './ThemeProvider';
+import { useMobileNav } from './MobileNavContext';
 
 export default function TopBar({ title }: { title?: string }) {
   const { theme, toggleTheme } = useTheme();
+  const { toggle: toggleNav } = useMobileNav();
 
   return (
-    <header className="h-14 border-b border-card-border flex items-center justify-between px-6 bg-sidebar">
-      <div className="flex items-center gap-4">
+    <header className="h-14 border-b border-card-border flex items-center justify-between px-4 md:px-6 bg-sidebar gap-2">
+      <div className="flex items-center gap-2 md:gap-4 min-w-0">
+        {/* Hamburger — mobile only */}
+        <button
+          onClick={toggleNav}
+          aria-label="Open menu"
+          className="md:hidden p-2 -ml-2 rounded-lg hover:bg-card transition-colors text-muted hover:text-foreground"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
         {title && (
-          <h1 className="text-sm font-semibold uppercase tracking-wider text-muted">
+          <h1 className="text-sm font-semibold uppercase tracking-wider text-muted truncate">
             {title}
           </h1>
         )}

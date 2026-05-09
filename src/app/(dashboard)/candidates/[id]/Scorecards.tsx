@@ -114,7 +114,7 @@ function ScorecardForm({ interview, requiredSkills, onSaved }: ScorecardFormProp
               value={interviewerName}
               onChange={(e) => setInterviewerName(e.target.value)}
               placeholder="Your name"
-              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
             />
           </div>
           <div>
@@ -126,7 +126,7 @@ function ScorecardForm({ interview, requiredSkills, onSaved }: ScorecardFormProp
               value={interviewerEmail}
               onChange={(e) => setInterviewerEmail(e.target.value)}
               placeholder="you@company.com"
-              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
             />
           </div>
         </div>
@@ -198,7 +198,7 @@ function ScorecardForm({ interview, requiredSkills, onSaved }: ScorecardFormProp
             <select
               value={recommendation}
               onChange={(e) => setRecommendation(e.target.value as Recommendation)}
-              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
             >
               {(Object.entries(RECOMMENDATION_LABELS) as [Recommendation, string][]).map(
                 ([value, label]) => (
@@ -221,7 +221,7 @@ function ScorecardForm({ interview, requiredSkills, onSaved }: ScorecardFormProp
             rows={4}
             maxLength={4000}
             placeholder="Specific examples, areas of strength, concerns, follow-up questions for next round…"
-            className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors resize-y"
+            className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors resize-y"
           />
         </div>
       </div>

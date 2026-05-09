@@ -142,7 +142,7 @@ export default function EmailTemplatePage() {
   return (
     <div className="flex flex-col min-h-screen">
       <TopBar title="Email Templates" />
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4 md:p-6">
         <div className="text-xs text-muted mb-1">
           <Link href="/settings" className="hover:text-foreground transition-colors">
             ← All settings

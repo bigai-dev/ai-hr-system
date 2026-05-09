@@ -118,7 +118,7 @@ export default function BookingLinkModal({ applicantId, applicantName, onClose }
               <select
                 value={interviewType}
                 onChange={(e) => setInterviewType(e.target.value)}
-                className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+                className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
               >
                 {TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -136,7 +136,7 @@ export default function BookingLinkModal({ applicantId, applicantName, onClose }
                 <select
                   value={duration}
                   onChange={(e) => setDuration(Number(e.target.value))}
-                  className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+                  className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
                 >
                   <option value={15}>15 min</option>
                   <option value={30}>30 min</option>
@@ -152,7 +152,7 @@ export default function BookingLinkModal({ applicantId, applicantName, onClose }
                 <select
                   value={expiresInDays}
                   onChange={(e) => setExpiresInDays(Number(e.target.value))}
-                  className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+                  className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
                 >
                   <option value={3}>in 3 days</option>
                   <option value={7}>in 7 days</option>

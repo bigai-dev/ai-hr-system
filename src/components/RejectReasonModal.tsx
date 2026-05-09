@@ -71,7 +71,7 @@ export default function RejectReasonModal({
             <select
               value={reason}
               onChange={(e) => setReason(e.target.value as RejectionReason)}
-              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
             >
               {reasons.map(([value, label]) => (
                 <option key={value} value={value}>
@@ -91,7 +91,7 @@ export default function RejectReasonModal({
               rows={3}
               maxLength={1000}
               placeholder="Adds a paragraph to the email. Skip if not needed."
-              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors resize-none"
+              className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors resize-none"
             />
           </div>
         </div>

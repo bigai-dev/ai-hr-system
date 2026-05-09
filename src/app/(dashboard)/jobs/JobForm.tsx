@@ -33,7 +33,7 @@ function SkillsField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-vertical"
+        className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-vertical"
       />
       <p className="text-xs text-muted mt-1">{hint}</p>
     </div>
@@ -111,7 +111,7 @@ export default function JobForm({ mode }: { mode: Mode }) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Senior Software Engineer"
-          className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+          className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
         />
       </div>
 
@@ -127,7 +127,7 @@ export default function JobForm({ mode }: { mode: Mode }) {
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
           placeholder="One or two sentences about the role: what the team does, location, type of work."
-          className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-vertical"
+          className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-vertical"
         />
       </div>
 
@@ -142,7 +142,7 @@ export default function JobForm({ mode }: { mode: Mode }) {
           value={responsibilities}
           onChange={(e) => setResponsibilities(e.target.value)}
           placeholder={'- Build and ship features on the platform\n- Design and own backend services\n- Collaborate with product and design'}
-          className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-vertical"
+          className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-vertical"
         />
         <p className="text-xs text-muted mt-1">One per line. Bullet points (- ) optional.</p>
       </div>
@@ -178,7 +178,7 @@ export default function JobForm({ mode }: { mode: Mode }) {
             max={60}
             value={minYears}
             onChange={(e) => setMinYears(e.target.value)}
-            className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+            className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
           />
         </div>
         <div>
@@ -187,7 +187,7 @@ export default function JobForm({ mode }: { mode: Mode }) {
             id="status"
             value={status}
             onChange={(e) => setStatus(e.target.value as 'active' | 'archived')}
-            className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+            className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
           >
             <option value="active">Active (visible on apply form)</option>
             <option value="archived">Archived (hidden from candidates)</option>
@@ -206,7 +206,7 @@ export default function JobForm({ mode }: { mode: Mode }) {
           value={hiringManagerEmail}
           onChange={(e) => setHiringManagerEmail(e.target.value)}
           placeholder="manager@company.com"
-          className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+          className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
         />
         <p className="text-xs text-muted mt-1">
           Receives the weekly digest (Mon 8am UTC) summarizing new applicants, interviews, and aging candidates for this role.
@@ -224,7 +224,7 @@ export default function JobForm({ mode }: { mode: Mode }) {
           value={additionalNotes}
           onChange={(e) => setAdditionalNotes(e.target.value)}
           placeholder="Anything else the AI should know — tech stack details, team culture, deal-breakers, etc."
-          className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-vertical"
+          className="w-full bg-card border border-card-border rounded-lg px-4 py-2.5 text-base md:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-vertical"
         />
       </div>
 

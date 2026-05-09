@@ -190,7 +190,7 @@ export default function DashboardPage() {
         />
       )}
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         {/* ── Stats Cards ──────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Applicants */}
@@ -265,7 +265,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-200">
               <thead>
                 <tr className="border-b border-card-border text-left">
                   <th className="px-6 py-3 text-[10px] font-semibold text-muted uppercase tracking-wider">

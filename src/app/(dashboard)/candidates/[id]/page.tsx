@@ -386,7 +386,7 @@ export default function CandidateDetailPage() {
         </div>
       )}
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         {/* ── Header Section ──────────────────────────────────────────── */}
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left: Avatar + Info */}
@@ -825,8 +825,9 @@ export default function CandidateDetailPage() {
       </div>
 
       {/* ── Sticky Bottom Bar ──────────────────────────────────────────── */}
-      <div className="fixed bottom-0 right-0 left-56 bg-card border-t border-card-border px-6 py-3 flex items-center justify-between z-40">
-        <div className="flex items-center gap-3">
+      <div className="fixed bottom-0 right-0 left-0 md:left-56 bg-card border-t border-card-border px-4 md:px-6 py-3 flex items-center justify-between gap-2 z-40">
+        {/* Prev/Next: desktop-only — on mobile use the back button or candidates list. */}
+        <div className="hidden md:flex items-center gap-3">
           {prevId ? (
             <Link
               href={`/candidates/${prevId}`}
@@ -854,24 +855,26 @@ export default function CandidateDetailPage() {
             <span className="text-sm text-muted-foreground cursor-not-allowed">Next</span>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3 ml-auto">
           <button
             onClick={() => setShowRejectModal(true)}
-            className="px-5 py-2.5 text-sm font-medium border border-danger text-danger rounded-lg hover:bg-danger/10 transition-colors"
+            className="px-3 md:px-5 py-2 md:py-2.5 text-sm font-medium border border-danger text-danger rounded-lg hover:bg-danger/10 transition-colors"
           >
-            Reject Candidate
+            Reject<span className="hidden sm:inline"> Candidate</span>
           </button>
           <button
             onClick={() => setShowBookingLink(true)}
-            className="px-5 py-2.5 text-sm font-medium border border-card-border rounded-lg hover:bg-background transition-colors"
+            className="px-3 md:px-5 py-2 md:py-2.5 text-sm font-medium border border-card-border rounded-lg hover:bg-background transition-colors"
           >
-            Send booking link
+            <span className="sm:hidden">Book</span>
+            <span className="hidden sm:inline">Send booking link</span>
           </button>
           <button
             onClick={() => setShowConfirm(true)}
-            className="px-5 py-2.5 text-sm font-bold bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
+            className="px-3 md:px-5 py-2 md:py-2.5 text-sm font-bold bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors whitespace-nowrap"
           >
-            Confirm &amp; Schedule Interview
+            <span className="sm:hidden">Schedule</span>
+            <span className="hidden sm:inline">Confirm &amp; Schedule Interview</span>
           </button>
         </div>
       </div>

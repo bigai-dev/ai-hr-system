@@ -31,7 +31,7 @@ export default function SettingsIndexPage() {
   return (
     <div className="min-h-screen">
       <TopBar title="Settings" />
-      <div className="p-6 max-w-4xl">
+      <div className="p-4 md:p-6 max-w-4xl">
         <p className="text-sm text-muted mb-6">
           Configure how the platform talks to candidates and how interviews get scheduled.
         </p>

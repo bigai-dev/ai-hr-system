@@ -91,7 +91,7 @@ export default function ScheduleInterviewModal({
                 value={date}
                 min={today}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+                className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
               />
             </div>
             <div>
@@ -100,7 +100,7 @@ export default function ScheduleInterviewModal({
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+                className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
               />
             </div>
             <div>
@@ -108,7 +108,7 @@ export default function ScheduleInterviewModal({
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value)}
-                className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+                className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
               >
                 {INTERVIEW_TYPES.map((t) => (
                   <option key={t} value={t}>{t}</option>
@@ -120,7 +120,7 @@ export default function ScheduleInterviewModal({
               <select
                 value={durationMinutes}
                 onChange={(e) => setDurationMinutes(Number(e.target.value))}
-                className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
+                className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-base md:text-sm outline-none focus:border-accent transition-colors"
               >
                 {DURATION_OPTIONS.map((d) => (
                   <option key={d} value={d}>{d} min</option>

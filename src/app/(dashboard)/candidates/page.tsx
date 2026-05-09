@@ -22,7 +22,7 @@ export default function CandidatesPage() {
       <TopBar title="Candidates" />
       <Suspense
         fallback={
-          <div className="p-6 flex items-center justify-center">
+          <div className="p-4 md:p-6 flex items-center justify-center">
             <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
           </div>
         }
@@ -100,7 +100,7 @@ function CandidateListView() {
 
   return (
     <>
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         {/* View toggle */}
         <div className="mb-4 flex items-center gap-1 bg-card border border-card-border rounded-lg p-0.5 w-fit">
           <Link
@@ -198,13 +198,14 @@ function CandidateListView() {
               placeholder="Quick search list..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-white dark:bg-[#242424] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-1.5 text-sm outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-[#6b7280] w-48"
+              className="bg-white dark:bg-[#242424] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-1.5 text-base md:text-sm outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-[#6b7280] w-full sm:w-48"
             />
           </div>
 
           {/* Table */}
           <div className="bg-white dark:bg-[#242424] border border-gray-200 dark:border-[#333] rounded-xl overflow-hidden">
-            <table className="w-full">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-160">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-[#333]">
                   <th className="text-left text-xs font-semibold text-gray-500 dark:text-[#9ca3af] uppercase px-5 py-3">Name</th>
@@ -284,6 +285,7 @@ function CandidateListView() {
                 )}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       </div>
@@ -315,7 +317,7 @@ function CandidateListView() {
                   type="date"
                   value={scheduleDate}
                   onChange={(e) => setScheduleDate(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none text-gray-900 dark:text-white focus:border-accent transition-colors"
+                  className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-base md:text-sm outline-none text-gray-900 dark:text-white focus:border-accent transition-colors"
                 />
               </div>
 
@@ -325,7 +327,7 @@ function CandidateListView() {
                 <select
                   value={scheduleTime}
                   onChange={(e) => setScheduleTime(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none text-gray-900 dark:text-white focus:border-accent transition-colors"
+                  className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-base md:text-sm outline-none text-gray-900 dark:text-white focus:border-accent transition-colors"
                 >
                   <option value="09:00">9:00 AM</option>
                   <option value="10:00">10:00 AM</option>
@@ -344,7 +346,7 @@ function CandidateListView() {
                 <select
                   value={scheduleType}
                   onChange={(e) => setScheduleType(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-sm outline-none text-gray-900 dark:text-white focus:border-accent transition-colors"
+                  className="w-full bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] rounded-lg px-3 py-2 text-base md:text-sm outline-none text-gray-900 dark:text-white focus:border-accent transition-colors"
                 >
                   <option value="Technical Screen">Technical Screen</option>
                   <option value="HR Interview">HR Interview</option>
