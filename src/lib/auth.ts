@@ -11,6 +11,12 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export function verifyBasicAuth(authHeader: string | null | undefined): boolean {
+  // Demo / local escape hatch: setting DISABLE_AUTH=1 in the environment
+  // bypasses HTTP Basic everywhere — both this middleware check and every
+  // server action's requireAuth() (which calls into here). Never set this in
+  // production; the dashboard exposes destructive actions and PII.
+  if (process.env.DISABLE_AUTH === '1') return true;
+
   const expectedUser = process.env.BASIC_AUTH_USER;
   const expectedPass = process.env.BASIC_AUTH_PASS;
 
