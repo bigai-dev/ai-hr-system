@@ -192,7 +192,7 @@ export default function DashboardPage() {
 
       <div className="p-4 md:p-6 space-y-6">
         {/* ── Stats Cards ──────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div data-tour="pipeline-stats" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Applicants */}
           <div className="bg-card border border-card-border rounded-xl p-5">
             <span className="text-xs font-semibold text-muted uppercase tracking-wider">
@@ -256,7 +256,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ── AI Screening Queue ───────────────────────────────────────── */}
-        <div className="bg-card border border-card-border rounded-xl">
+        <div data-tour="screening-queue" className="bg-card border border-card-border rounded-xl">
           <div className="px-6 py-5 border-b border-card-border">
             <h2 className="text-base font-bold">AI Screening Queue</h2>
             <p className="text-xs text-muted mt-1">

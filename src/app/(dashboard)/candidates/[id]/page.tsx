@@ -388,7 +388,7 @@ export default function CandidateDetailPage() {
 
       <div className="p-4 md:p-6 space-y-6">
         {/* ── Header Section ──────────────────────────────────────────── */}
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div data-tour="candidate-header" className="flex flex-col lg:flex-row gap-6">
           {/* Left: Avatar + Info */}
           <div className="flex-1 flex items-start gap-5">
             <div className="w-20 h-20 rounded-2xl bg-accent/20 flex items-center justify-center text-accent text-2xl font-bold shrink-0">
@@ -855,7 +855,7 @@ export default function CandidateDetailPage() {
             <span className="text-sm text-muted-foreground cursor-not-allowed">Next</span>
           )}
         </div>
-        <div className="flex items-center gap-2 md:gap-3 ml-auto">
+        <div data-tour="schedule-actions" className="flex items-center gap-2 md:gap-3 ml-auto">
           <button
             onClick={() => setShowRejectModal(true)}
             className="px-3 md:px-5 py-2 md:py-2.5 text-sm font-medium border border-danger text-danger rounded-lg hover:bg-danger/10 transition-colors"

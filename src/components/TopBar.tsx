@@ -2,10 +2,12 @@
 
 import { useTheme } from './ThemeProvider';
 import { useMobileNav } from './MobileNavContext';
+import { useTour } from './TourContext';
 
 export default function TopBar({ title }: { title?: string }) {
   const { theme, toggleTheme } = useTheme();
   const { toggle: toggleNav } = useMobileNav();
+  const { isActive: tourActive, isStarting: tourStarting, start: startTour, end: endTour } = useTour();
 
   return (
     <header className="h-14 border-b border-card-border flex items-center justify-between px-4 md:px-6 bg-sidebar gap-2">
@@ -26,7 +28,22 @@ export default function TopBar({ title }: { title?: string }) {
           </h1>
         )}
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
+        {/* Demo button — kicks off the guided product tour */}
+        <button
+          onClick={() => {
+            if (tourActive) void endTour();
+            else void startTour();
+          }}
+          disabled={tourStarting}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-wait ${
+            tourActive
+              ? 'bg-card border border-card-border text-foreground hover:bg-background'
+              : 'bg-accent hover:bg-accent-hover text-white'
+          }`}
+        >
+          {tourStarting ? 'Loading…' : tourActive ? 'End demo' : 'Demo'}
+        </button>
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}

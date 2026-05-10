@@ -680,7 +680,7 @@ export default function CandidateKanban() {
 
       {/* Board */}
       {(loading || activeJobs.length > 0) && (
-        <div className="overflow-x-auto pb-2">
+        <div data-tour="kanban-board" className="overflow-x-auto pb-2">
           <div className="flex gap-3 min-w-max">
             {PIPELINE_STAGES.map((stage) => (
               <Column

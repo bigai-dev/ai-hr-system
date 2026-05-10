@@ -975,3 +975,176 @@ export async function setJobStatus(id: string, status: 'active' | 'archived'): P
   });
   log.info('job_status_changed', { jobId: id, status });
 }
+
+// ── Demo / tour seeding ──────────────────────────────────────────────────────
+// Everything seeded here is prefixed with [Demo] in name/title — that prefix is
+// the single source of truth for cleanup. If the tour is interrupted (browser
+// closed, server crashed) the next start() call still wipes prior demo rows
+// before reseeding, so we never accumulate junk.
+const DEMO_PREFIX = '[Demo]';
+
+const DEMO_CANDIDATES: Array<{
+  name: string;
+  email: string;
+  phone: string;
+  years_experience: number;
+  status: import('@/lib/types').ApplicantStatus;
+  ai_match_score: number | null;
+  ai_reasoning: string | null;
+  ai_extracted_skills: string[] | null;
+  cover_letter: string;
+}> = [
+  {
+    name: `${DEMO_PREFIX} Maya Chen`,
+    email: 'maya.demo@example.com',
+    phone: '+60123456001',
+    years_experience: 5,
+    status: 'new',
+    ai_match_score: null,
+    ai_reasoning: null,
+    ai_extracted_skills: null,
+    cover_letter:
+      "Frontend engineer with 5 years building design systems at fintech startups. Excited about your component library work.",
+  },
+  {
+    name: `${DEMO_PREFIX} Daniel Park`,
+    email: 'daniel.demo@example.com',
+    phone: '+60123456002',
+    years_experience: 7,
+    status: 'screened',
+    ai_match_score: 87,
+    ai_reasoning:
+      'Strong match: 7 years React, deep TypeScript, shipped Next.js apps at scale. Component library experience aligns with role.',
+    ai_extracted_skills: ['React', 'TypeScript', 'Next.js', 'GraphQL', 'Storybook'],
+    cover_letter: 'Looking to build product UI that engineers and designers both love using.',
+  },
+  {
+    name: `${DEMO_PREFIX} Priya Shah`,
+    email: 'priya.demo@example.com',
+    phone: '+60123456003',
+    years_experience: 4,
+    status: 'screened',
+    ai_match_score: 72,
+    ai_reasoning:
+      'Solid React fundamentals, 4 years experience. Less depth in TypeScript and design systems than top candidates.',
+    ai_extracted_skills: ['React', 'JavaScript', 'CSS', 'Figma'],
+    cover_letter: 'Designer-turned-engineer, comfortable owning UI from spec to ship.',
+  },
+  {
+    name: `${DEMO_PREFIX} Tomás Rivera`,
+    email: 'tomas.demo@example.com',
+    phone: '+60123456004',
+    years_experience: 6,
+    status: 'phone_screen',
+    ai_match_score: 81,
+    ai_reasoning: 'Strong fit on stack and seniority. Some gaps in product experience.',
+    ai_extracted_skills: ['React', 'TypeScript', 'Tailwind', 'Vite', 'Playwright'],
+    cover_letter: 'Frontend lead at a 30-person SaaS, ready for a bigger ownership scope.',
+  },
+  {
+    name: `${DEMO_PREFIX} Hana Yoshida`,
+    email: 'hana.demo@example.com',
+    phone: '+60123456005',
+    years_experience: 8,
+    status: 'onsite',
+    ai_match_score: 91,
+    ai_reasoning:
+      'Excellent match. Past lead engineer at a design-tools startup — owned the entire web app and shipped a full design system.',
+    ai_extracted_skills: ['React', 'TypeScript', 'Design Systems', 'Next.js', 'Performance'],
+    cover_letter: "Want to keep doing design-systems work, but inside a growth-stage product team.",
+  },
+  {
+    name: `${DEMO_PREFIX} Liam O'Connor`,
+    email: 'liam.demo@example.com',
+    phone: '+60123456006',
+    years_experience: 9,
+    status: 'offer',
+    ai_match_score: 89,
+    ai_reasoning:
+      'Tenured frontend engineer, deep React expertise, references checked. Pending offer acceptance.',
+    ai_extracted_skills: ['React', 'TypeScript', 'Node.js', 'Redux', 'Testing Library'],
+    cover_letter: 'Currently weighing two offers — yours is the more interesting product problem.',
+  },
+];
+
+export async function seedDemoData(): Promise<{ jobId: string; candidateIds: string[] }> {
+  await requireAuth();
+  // Always wipe existing demo rows first so the tour starts clean.
+  await cleanupDemoData();
+
+  const jobId = crypto.randomUUID();
+  const summary =
+    'Build the design system and product UI for our growth-stage SaaS. You own component architecture, accessibility, and the tooling that makes other engineers fast.';
+  // The schema still carries a legacy NOT NULL `description` column from
+  // before the structured-fields migration — write a copy of the summary
+  // so the constraint is satisfied without depending on a column default.
+  await turso.execute({
+    sql: `INSERT INTO jobs (
+            id, title, description, summary, responsibilities, required_skills,
+            nice_to_have_skills, min_years_experience, additional_notes, status,
+            hiring_manager_email
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [
+      jobId,
+      `${DEMO_PREFIX} Senior Frontend Engineer`,
+      summary,
+      summary,
+      'Lead frontend architecture decisions. Design and ship reusable components. Mentor engineers. Partner with design on product UX.',
+      'React, TypeScript, Next.js, design systems',
+      'Tailwind, GraphQL, Playwright, accessibility (a11y)',
+      5,
+      'Fully remote within +/- 3 hours of Asia/Kuala_Lumpur. Hybrid options for KL-based hires.',
+      'active',
+      null,
+    ],
+  });
+
+  const candidateIds: string[] = [];
+  for (const c of DEMO_CANDIDATES) {
+    const id = crypto.randomUUID();
+    candidateIds.push(id);
+    await turso.execute({
+      sql: `INSERT INTO applicants (
+              id, name, email, phone, job_title, job_id, years_experience,
+              cover_letter, status, ai_match_score, ai_reasoning, ai_extracted_skills,
+              stage_changed_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+      args: [
+        id,
+        c.name,
+        c.email,
+        c.phone,
+        `${DEMO_PREFIX} Senior Frontend Engineer`,
+        jobId,
+        c.years_experience,
+        c.cover_letter,
+        c.status,
+        c.ai_match_score,
+        c.ai_reasoning,
+        c.ai_extracted_skills ? JSON.stringify(c.ai_extracted_skills) : null,
+      ],
+    });
+  }
+
+  log.info('demo_seeded', { jobId, candidateCount: candidateIds.length });
+  return { jobId, candidateIds };
+}
+
+export async function cleanupDemoData(): Promise<{ jobsDeleted: number; candidatesDeleted: number }> {
+  await requireAuth();
+  // Delete applicants first (FK references to jobs), then jobs.
+  const apps = await turso.execute({
+    sql: 'DELETE FROM applicants WHERE name LIKE ?',
+    args: [`${DEMO_PREFIX}%`],
+  });
+  const jobs = await turso.execute({
+    sql: 'DELETE FROM jobs WHERE title LIKE ?',
+    args: [`${DEMO_PREFIX}%`],
+  });
+  const out = {
+    jobsDeleted: Number(jobs.rowsAffected ?? 0),
+    candidatesDeleted: Number(apps.rowsAffected ?? 0),
+  };
+  log.info('demo_cleaned', out);
+  return out;
+}

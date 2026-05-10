@@ -36,7 +36,7 @@ export default function SettingsIndexPage() {
           Configure how the platform talks to candidates and how interviews get scheduled.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div data-tour="settings-list" className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {SETTINGS.map((s) => (
             <Link
               key={s.href}
