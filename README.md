@@ -1,178 +1,116 @@
-# RECRUIT.AI
+# Recruit.AI
 
-An AI-powered recruitment demo built with Next.js 16, DeepSeek (OpenAI-compatible API), and Turso (SQLite-as-a-service). Candidates apply through a public form → DeepSeek scores their resume against a job description → you manage the pipeline and schedule interviews from a dashboard.
+An AI-powered recruitment system where candidates apply through a public form, an AI scores each resume against the job, and your team manages the whole pipeline from a single dashboard.
 
-Built as a **vibe-coding workshop** starter: a small, readable codebase you can extend with natural-language prompts in Claude Code.
+Candidates submit an application and PDF resume on a public page; DeepSeek reads the resume and scores the fit 0-100 with reasoning and extracted skills; recruiters then triage, schedule interviews, and send outreach from a protected dashboard. It is built for small hiring teams who want automated first-pass screening without a heavyweight applicant-tracking platform.
 
----
+## Features
 
-## What you get out of the box
+- **Public application page** (`/apply`) with form fields and PDF resume upload (5 MB cap, PDF-only with magic-byte validation).
+- **AI resume screening** — DeepSeek (`deepseek-chat`) scores each candidate 0-100 against the active job, returning reasoning and an extracted-skills list. Runs as background work so the applicant gets an instant confirmation.
+- **Screening cost tracking** — input/output tokens and per-screen cost are recorded, with a log alert when a screen exceeds a cost threshold.
+- **Manual-review flagging** — suspiciously high scores on near-empty resumes are flagged for human review (a guard against prompt injection and gamed resumes).
+- **Prompt-injection hardening** — resume and cover-letter text is wrapped in untrusted-content tags with explicit instructions to ignore any embedded commands.
+- **Jobs management** — create and edit structured job postings (summary, responsibilities, required and nice-to-have skills, minimum experience); applications are scored against the active job.
+- **Candidates pipeline** — a Kanban board to search, filter, move stages, and reject candidates (with a reason prompt).
+- **Interview scheduling** — schedule interviews from the dashboard and view them on a calendar.
+- **Self-serve booking links** — generate a tokenized link so candidates can pick a slot themselves (`/book/[token]`), with working-hours slot generation in a configurable timezone.
+- **Interview scorecards** — capture structured interview feedback per candidate.
+- **Transactional email** — sends via Resend when configured, or falls back to a safe "mock-log" mode that records every message to an in-app audit list. Includes editable email and WhatsApp outreach templates.
+- **Scheduled jobs (cron)** — daily cleanup of old rejected applicants and rate-limit events (Vercel Cron, defined in `vercel.ts`), plus scorecard reminders and a weekly digest (triggered by GitHub Actions workflows in `.github/workflows/`).
+- **Rate limiting** — per-IP and per-email submission limits on the public apply endpoint.
+- **HTTP Basic auth** protecting the entire dashboard (everything except the public apply, application-intake, cron, booking, and privacy paths), with a `DISABLE_AUTH` escape hatch for local demos.
+- **Security headers & CSP** — strict Content-Security-Policy with per-request nonce, HSTS, and clickjacking/MIME protections.
+- **Dark and light theme** toggle and a built-in guided product tour.
 
-- **Public application page** (`/apply`) — form + PDF resume upload
-- **AI screening** — DeepSeek reads the resume PDF and scores the candidate 0–100 with reasoning and extracted skills
-- **Candidates dashboard** — search, filter, reject, schedule
-- **Scheduling** — calendar view of upcoming interviews
-- **Settings** — editable email / WhatsApp outreach templates
-- **Dark + light theme** toggle
+## Tech Stack
 
-Stack: Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · DeepSeek V3 (`deepseek-chat`) · Turso (libSQL) · `unpdf` for resume parsing.
+- **Framework:** Next.js 16 (App Router) with React 19
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS v4
+- **AI provider:** DeepSeek V3 (`deepseek-chat`), called through the OpenAI SDK (OpenAI-compatible API)
+- **Database:** Turso / libSQL (`@libsql/client`)
+- **File storage:** Vercel Blob (private blobs for resumes)
+- **PDF parsing:** `unpdf`
+- **Validation:** Zod
+- **Email:** Resend (optional; mock-log fallback)
+- **Testing:** Vitest
+- **Hosting:** Vercel (the cleanup cron and serverless function config are defined in `vercel.ts`; the scorecard-reminder and weekly-digest crons are scheduled by GitHub Actions in `.github/workflows/`)
 
----
+## Getting Started
 
-## Quick start (5 min)
+### Prerequisites
 
-### 1. Clone + install
+- Node.js 22+
+- A Turso database (free tier is plenty)
+- A DeepSeek API key
+
+### Installation
 
 ```bash
-git clone <this-repo-url> recruit-ai
-cd recruit-ai
 npm install
 ```
 
-### 2. Create a Turso database (free tier is plenty)
-
-Install the Turso CLI once: <https://docs.turso.tech/cli/installation>
+Create the database tables once against your Turso database using the included `schema.sql`:
 
 ```bash
-turso auth signup          # or: turso auth login
-turso db create recruit-ai
-turso db shell recruit-ai < schema.sql   # creates the tables
-turso db show recruit-ai --url           # copy the libsql:// URL
-turso db tokens create recruit-ai        # copy the token
+turso db shell <your-db-name> < schema.sql
 ```
 
-### 3. Get a DeepSeek API key
+### Environment Variables
 
-Sign up at <https://platform.deepseek.com> → **API Keys** → **Create new API key**. Top up a few dollars — DeepSeek V3 is ~$0.27 / 1M input tokens and $1.10 / 1M output tokens, so it goes a long way.
+Copy `.env.example` to `.env.local` and fill in your own values:
 
-### 4. Wire up your environment
+| Variable | Description |
+|----------|-------------|
+| `TURSO_DATABASE_URL` | Connection URL for your Turso (libSQL) database. |
+| `TURSO_AUTH_TOKEN` | Auth token for the Turso database. |
+| `DEEPSEEK_API_KEY` | API key for DeepSeek, used for AI resume screening. |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for storing uploaded resumes (auto-injected when Blob is connected on Vercel). |
+| `BASIC_AUTH_USER` | Username for HTTP Basic auth on the dashboard. |
+| `BASIC_AUTH_PASS` | Password for HTTP Basic auth on the dashboard (use a long random value). |
+| `DISABLE_AUTH` | Optional. Set to `1` to bypass dashboard auth for local demos only. Never use in production. |
+| `CRON_SECRET` | Secret Vercel sends in the Authorization header to the `/api/cron/*` endpoints. |
+| `RESEND_API_KEY` | Optional. Resend API key for sending real email. If unset, the app runs in mock-log mode. |
+| `EMAIL_FROM_ADDRESS` | The "from" address used on outgoing email. |
+| `EMAIL_COMPANY_NAME` | Company/team name shown in email content. |
+| `BOOKING_TIMEZONE` | IANA timezone for self-serve scheduling (default `Asia/Kuala_Lumpur`). |
 
-```bash
-cp .env.example .env.local
-```
-
-Open `.env.local` and paste in your three values:
-
-```
-TURSO_DATABASE_URL=libsql://recruit-ai-<you>.turso.io
-TURSO_AUTH_TOKEN=eyJ...
-DEEPSEEK_API_KEY=sk-...
-```
-
-### 5. Run it
+### Running Locally
 
 ```bash
 npm run dev
 ```
 
-Open <http://localhost:3000>:
+Then open http://localhost:3000 in your browser. Try `/apply` to submit a test application (upload any text-based PDF), then `/dashboard` and `/candidates` to see the AI-scored candidate and manage the pipeline.
 
-- **`/apply`** — submit a test application (upload any PDF resume)
-- **`/dashboard`** — see the candidate scored by DeepSeek
-- **`/candidates`** — manage the pipeline
-- **`/scheduling`** — book interviews
-
-That's it. If the AI score doesn't appear within ~10 seconds, check the terminal for errors.
-
----
-
-## Project map
-
-```
-src/
-├── app/
-│   ├── apply/                  # public application form
-│   ├── (dashboard)/            # protected-style layout + pages
-│   │   ├── dashboard/          # overview
-│   │   ├── candidates/         # list + detail
-│   │   ├── scheduling/         # calendar
-│   │   └── settings/           # email / whatsapp templates
-│   └── api/
-│       ├── db/route.ts         # Turso proxy for client components
-│       ├── screen/route.ts     # Claude-powered resume scoring
-│       └── upload-resume/route.ts
-├── components/                 # Sidebar, TopBar, ThemeProvider
-└── lib/
-    ├── turso.ts                # DB client
-    ├── db.ts                   # typed client-side wrapper
-    ├── types.ts                # Applicant / Interview types
-    └── job-description.ts      # the JD Claude scores against
-schema.sql                      # run this once in Turso
-```
-
-**Key files to read first:**
-
-1. [src/lib/job-description.ts](src/lib/job-description.ts) — change this to change what Claude scores against
-2. [src/lib/screen.ts](src/lib/screen.ts) — the DeepSeek prompt and screening logic live here
-3. [src/app/apply/page.tsx](src/app/apply/page.tsx) — the candidate-facing form
-4. [src/lib/types.ts](src/lib/types.ts) — data model
-
----
-
-## Vibe-coding from here (prompts to try in Claude Code)
-
-Open this project in [Claude Code](https://www.anthropic.com/claude-code) and try prompts like:
-
-**Tweak the AI:**
-> "Change the job description to a Junior Data Analyst role and update the fields on the apply page to match."
-
-> "In `src/lib/screen.ts`, make the model also return a `red_flags` array of concerns. Surface it on the candidate detail page."
-
-**Add features:**
-> "Add a `rejection_reason` column to the applicants table (update `schema.sql` and the migrations). When I reject a candidate, ask me for a reason and store it."
-
-> "When an interview is scheduled, send an email via Resend. Put the Resend key in `.env.example` and document it in the README."
-
-> "Add an 'Export to CSV' button on the candidates page that downloads the current filtered list."
-
-**Polish:**
-> "The theme toggle flashes on first load. Fix it."
-
-> "Add skeleton loaders to the candidates page while applicants are being fetched."
-
-> "Make the dashboard stat cards animate on mount with a subtle count-up."
-
-**Deploy:**
-> "Walk me through deploying this to Vercel. Tell me which env vars I need to set in the Vercel dashboard."
-
-### Tips for working with Claude Code on this repo
-
-- **This is Next.js 16** (App Router, React 19, Tailwind v4). If Claude suggests patterns that look like older Next.js, push back: *"Use the Next.js 16 App Router conventions."*
-- **Keep edits small.** Ask for one feature at a time and run the dev server between prompts so you catch regressions early.
-- **The DeepSeek model is set in [src/lib/screen.ts](src/lib/screen.ts)** — swap `deepseek-chat` (V3, fast/cheap) for `deepseek-reasoner` (R1, chain-of-thought) if you want stronger reasoning at higher cost. Or change `baseURL` + model and supply a different API key to swap providers entirely.
-- **Uploaded resumes land in `public/resumes/`** which is gitignored. On Vercel the filesystem is ephemeral — if you deploy, switch to object storage (Vercel Blob, S3, Turso file storage, etc.). Ask Claude to help.
-
----
-
-## Security notes
-
-- `.env.local` is gitignored. **Never commit real keys.** If you accidentally do, rotate them immediately.
-- `public/resumes/*` is gitignored — candidate PDFs contain PII and should never be pushed.
-- `.claude/` is gitignored so your local Claude Code settings don't leak.
-- This demo has **no authentication** on the dashboard. Don't put it on the public internet with real candidate data. Add auth (NextAuth, Clerk, etc.) before going live.
-
----
-
-## Troubleshooting
-
-| Symptom | Fix |
-|---|---|
-| `TURSO_DATABASE_URL` is undefined | You didn't copy `.env.example` → `.env.local`, or didn't restart `npm run dev` after editing it |
-| `401` from DeepSeek | `DEEPSEEK_API_KEY` is wrong, expired, or out of credit |
-| PDF resume isn't being scored | Check the terminal — `unpdf` fails on some scanned/encrypted PDFs. Try a text-based PDF |
-| Candidate stuck on `screening` status | The `/api/screen` call failed; check the browser network tab and server logs |
-| Hydration warning about theme | Already handled — ignore unless the page actually flashes |
-
----
-
-## Scripts
+Other useful scripts:
 
 ```bash
-npm run dev      # local dev server on http://localhost:3000
-npm run build    # production build
-npm run start    # run the production build
+npm run build      # production build
+npm run start      # run the production build
+npm run typecheck  # TypeScript type checking
+npm run test       # run the Vitest test suite
 ```
 
----
+## Project Structure
 
-Built for the vibe-coding workshop. Fork it, break it, rebuild it.
+- `src/app/apply/` — public application form (the candidate-facing entry point).
+- `src/app/book/[token]/` — public self-serve interview booking page.
+- `src/app/(dashboard)/` — the protected dashboard: overview, candidates, jobs, scheduling, and settings (email/WhatsApp templates, scheduling config, outgoing-emails audit).
+- `src/app/api/` — route handlers: `applications` (intake + screening), `resumes/[id]` (private resume streaming), and `cron/*` (cleanup, scorecard reminders, weekly digest).
+- `src/lib/` — core logic: `screen.ts` (DeepSeek screening + prompt), `turso.ts` (DB client), `jobs.ts`, `booking.ts`, `email.ts` and email templates, `auth.ts`, `ratelimit.ts`, `schemas.ts`.
+- `src/components/` — shared UI (sidebar, top bar, theme provider, modals, guided tour).
+- `src/proxy.ts` — middleware that enforces HTTP Basic auth and applies the Content-Security-Policy.
+- `migrations/` — incremental SQL migrations; `schema.sql` — the full schema to initialize a fresh database.
+- `scripts/` — helper scripts (run migration, email smoke tests).
+- `tests/` — Vitest unit tests for auth, logging, and schema validation.
+- `.github/workflows/` — CI (typecheck, test, build) plus the scheduled GitHub Actions that trigger the scorecard-reminder and weekly-digest cron endpoints.
+
+## Notes
+
+- This project was built as a starter for a **vibe-coding workshop**: a small, readable codebase meant to be extended with natural-language prompts in Claude Code.
+- Resumes are stored as **private** Vercel Blobs and streamed through `/api/resumes/[id]`; they contain PII and are never publicly served.
+- Email runs in **mock-log mode** by default (no `RESEND_API_KEY`): messages are recorded to the in-app outgoing-emails list instead of being sent, which keeps demos and dev environments safe.
+- `.env.local` is gitignored — never commit real credentials. If a key is ever exposed, rotate it immediately.
+- The cleanup cron schedule and serverless function limits are defined in `vercel.ts` for deployment on Vercel. The scorecard-reminder and weekly-digest crons are scheduled separately by GitHub Actions workflows in `.github/workflows/`, which call the matching `/api/cron/*` endpoints using the shared `CRON_SECRET`.
