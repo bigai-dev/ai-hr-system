@@ -251,6 +251,7 @@ export default function CandidateDetailPage() {
   const [applicant, setApplicant] = useState<Applicant | null>(null);
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
+  const [missing, setMissing] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
   const [noteDraft, setNoteDraft] = useState('');
   const [notes, setNotes] = useState<ApplicantNote[]>([]);
@@ -286,11 +287,15 @@ export default function CandidateDetailPage() {
     setLoading(true);
     const data = await getApplicant(id);
     if (data) {
+      setMissing(false);
       setApplicant(data);
       if (data.job_id) {
         const j = await getJob(data.job_id);
         setJob(j);
       }
+    } else {
+      // Candidate was deleted (e.g. demo data cleaned up when the tour ended).
+      setMissing(true);
     }
     setLoading(false);
   }
@@ -351,6 +356,29 @@ export default function CandidateDetailPage() {
   const currentIdx = allIds.indexOf(id);
   const prevId = currentIdx > 0 ? allIds[currentIdx - 1] : null;
   const nextId = currentIdx < allIds.length - 1 ? allIds[currentIdx + 1] : null;
+
+  if (!loading && missing) {
+    return (
+      <div className="flex-1">
+        <TopBar title="CANDIDATE PROFILE" />
+        <div className="p-4 md:p-6 lg:p-8 max-w-3xl">
+          <div className="bg-card border border-card-border rounded-2xl p-8 text-center">
+            <h1 className="text-xl font-semibold">This candidate no longer exists</h1>
+            <p className="text-sm text-muted mt-2">
+              They may have been removed, or this was demo data that was cleaned up when the
+              tour ended. Head back to the candidates board to pick another one.
+            </p>
+            <Link
+              href="/candidates"
+              className="inline-block mt-6 px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:opacity-90"
+            >
+              Back to candidates
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading || !applicant) {
     return (

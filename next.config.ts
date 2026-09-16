@@ -16,6 +16,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   experimental: {
+    // Turbopack's on-disk dev cache can go stale after restarts and serve
+    // random 404s (known Next 16 issue). In-memory only is fine for dev.
+    turbopackFileSystemCacheForDev: false,
     // Just above our 5MB resume cap so the route's 413 is the user-facing limit.
     // Anything larger gets buffered up to this size and rejected by the route.
     proxyClientMaxBodySize: '6mb',
